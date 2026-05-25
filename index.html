@@ -1,0 +1,2644 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<meta name="theme-color" content="#C8102E"/>
+<title>GMS — Система управления техникой</title>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+/* ══ RESET ══ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --r:#C8102E;--r2:#a00d24;--bk:#181818;--dk:#1e1e1e;
+  --gr:#F0F2F5;--br:#E2E4E9;--tx:#1a1a1a;--mu:#6b7280;
+  --gn:#16a34a;--gb:#dcfce7;--og:#d97706;--ob:#fef3c7;
+  --bl:#2563eb;--bb:#dbeafe;--pu:#7c3aed;
+  --sb:240px;--hh:54px;--bh:62px;
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gr);color:var(--tx);font-size:14px;}
+button{cursor:pointer;font-family:inherit;}
+input,select,textarea{font-family:inherit;cursor:text;}
+
+/* ══ LOADER ══ */
+#loader{position:fixed;inset:0;background:var(--bk);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;}
+.loader-logo{background:var(--r);border-radius:16px;width:72px;height:72px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:26px;color:#fff;margin-bottom:20px;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+.loader-text{color:#fff;font-size:16px;font-weight:600;margin-bottom:8px;}
+.loader-sub{color:#555;font-size:13px;}
+
+/* ══ LOGIN ══ */
+#loginWrap{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#080808,#1c1c1c);display:flex;align-items:center;justify-content:center;padding:20px;display:none;}
+.lcard{background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 40px 80px rgba(0,0,0,.6);}
+.l-logo{display:flex;align-items:center;gap:11px;margin-bottom:22px;}
+.l-icon{background:var(--r);border-radius:10px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:#fff;flex-shrink:0;}
+.l-nm{font-size:18px;font-weight:800;}.l-sb{font-size:11px;color:var(--mu);display:block;}
+.l-h{font-size:17px;font-weight:700;margin-bottom:3px;}.l-s{color:var(--mu);font-size:13px;margin-bottom:18px;}
+.l-field{display:flex;flex-direction:column;gap:4px;margin-bottom:11px;}
+.l-field label{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px;}
+.l-inp-wrap{position:relative;}
+.l-inp{border:1.5px solid var(--br);border-radius:10px;padding:12px 40px 12px 14px;font-size:15px;outline:none;background:#fafafa;width:100%;transition:border-color .15s;}
+.l-inp:focus{border-color:var(--r);background:#fff;}
+.l-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;padding:4px;}
+.l-err{color:var(--r);font-size:12px;font-weight:700;min-height:18px;margin-bottom:8px;}
+.l-btn{width:100%;background:var(--r);color:#fff;border:none;padding:14px;border-radius:11px;font-size:15px;font-weight:700;transition:background .15s;}
+.l-btn:hover{background:var(--r2);}
+.l-note{text-align:center;font-size:11px;color:#aaa;margin-top:12px;}
+
+/* ══ APP ══ */
+#app{display:none;height:100%;}
+
+/* ══ DESKTOP SIDEBAR ══ */
+.d-wrap{display:none;height:100%;}
+.d-side{position:fixed;top:0;left:0;bottom:0;width:var(--sb);background:var(--dk);display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.07);z-index:100;}
+.d-logo{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:9px;}
+.d-logo-b{background:var(--r);border-radius:7px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#fff;flex-shrink:0;}
+.d-logo-n{color:#fff;font-size:14px;font-weight:700;}.d-logo-s{color:#666;font-size:10px;display:block;}
+.d-nav{flex:1;overflow-y:auto;padding:8px;}
+.d-sec{font-size:10px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.5px;padding:10px 8px 4px;}
+.d-ni{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;border:none;background:none;width:100%;color:#888;font-size:13px;font-weight:500;text-align:left;transition:all .15s;margin-bottom:1px;}
+.d-ni:hover{background:rgba(255,255,255,.06);color:#fff;}
+.d-ni.act{background:rgba(200,16,46,.18);color:var(--r);}
+.d-ni-ico{width:20px;text-align:center;font-size:16px;flex-shrink:0;}
+.d-ni-badge{margin-left:auto;background:rgba(255,255,255,.1);border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;}
+.d-ni.act .d-ni-badge{background:rgba(200,16,46,.2);color:var(--r);}
+.d-contact{margin:8px;background:rgba(200,16,46,.1);border:1px solid rgba(200,16,46,.2);border-radius:10px;padding:10px 12px;}
+.d-contact-lbl{color:#ff7070;font-size:10px;font-weight:700;}
+.d-contact-name{color:#fff;font-size:12px;font-weight:700;margin-top:2px;}
+.d-contact-phone{color:var(--r);font-size:14px;font-weight:800;}
+.d-contact-dev{color:#555;font-size:10px;margin-top:2px;}
+.d-bottom{padding:10px;border-top:1px solid rgba(255,255,255,.07);}
+.d-user-btn{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.05);border:none;border-radius:8px;padding:9px 10px;width:100%;cursor:pointer;}
+.d-uav{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0;}
+.d-uname{color:#ccc;font-size:12px;font-weight:600;flex:1;text-align:left;}
+.d-main{margin-left:var(--sb);height:100vh;overflow-y:auto;padding:22px;}
+
+/* ══ MOBILE ══ */
+.m-wrap{display:none;flex-direction:column;height:100%;}
+.m-hdr{height:var(--hh);background:var(--bk);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;box-shadow:0 1px 0 rgba(255,255,255,.07);z-index:100;}
+.m-hdr-logo{display:flex;align-items:center;gap:9px;flex:1;min-width:0;}
+.m-hdr-b{background:var(--r);border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;color:#fff;flex-shrink:0;}
+.m-title{color:#fff;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.m-hdr-r{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.m-new{background:var(--r);color:#fff;border:none;width:32px;height:32px;border-radius:8px;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.m-avbtn{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:none;border-radius:20px;padding:3px 9px 3px 3px;}
+.m-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:9px;color:#fff;}
+.m-avname{color:#fff;font-size:11px;font-weight:600;}
+.m-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--bh)+8px);}
+.pg{display:none;}.pg.act{display:block;}
+.m-bnav{height:var(--bh);background:var(--bk);display:flex;align-items:stretch;flex-shrink:0;border-top:1px solid rgba(255,255,255,.07);padding-bottom:env(safe-area-inset-bottom,0);}
+.m-bn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:#555;padding:5px 2px;position:relative;transition:color .15s;}
+.m-bn.act{color:var(--r);}
+.m-bn-ico{font-size:19px;line-height:1;}.m-bn-lbl{font-size:9px;font-weight:600;}
+.m-bn-badge{position:absolute;top:4px;right:calc(50% - 15px);background:var(--r);color:#fff;font-size:8px;font-weight:800;min-width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;border:2px solid var(--bk);padding:0 2px;}
+.fab{position:fixed;right:14px;bottom:calc(var(--bh)+12px);width:52px;height:52px;border-radius:50%;background:var(--r);border:none;color:#fff;font-size:24px;box-shadow:0 4px 18px rgba(200,16,46,.4);display:flex;align-items:center;justify-content:center;z-index:200;transition:transform .15s;}
+.fab:active{transform:scale(.92);}
+
+/* ══ COMMON COMPONENTS ══ */
+.pill{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+.pill .dt{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.pg-{background:var(--gb);color:var(--gn);}
+.po-{background:var(--ob);color:var(--og);}
+.pb-{background:var(--bb);color:var(--bl);}
+.pq-{background:#f3f4f6;color:#888;}
+.pr-{background:#fce7e7;color:var(--r);}
+.pp-{background:var(--pu);color:#fff;}
+
+/* Page header */
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
+.ph-title{font-size:21px;font-weight:800;}
+.ph-title span{color:var(--r);}
+.ph-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.btn-r{background:var(--r);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;transition:background .15s;}
+.btn-r:hover{background:var(--r2);}
+.btn-g{background:var(--gr);color:var(--tx);border:1px solid var(--br);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;}
+.btn-g:hover{background:var(--br);}
+
+/* Cards */
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden;margin-bottom:14px;}
+.card-hdr{padding:13px 16px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.card-hdr h3{font-size:14px;font-weight:700;}
+.d-filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.d-sel{background:var(--gr);border:1px solid var(--br);border-radius:7px;padding:6px 10px;font-size:12px;outline:none;}
+.d-sinp{background:var(--gr);border:1px solid var(--br);border-radius:7px;padding:6px 10px;font-size:12px;outline:none;width:160px;}
+.d-sinp:focus{border-color:var(--r);}
+
+/* KPI row */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:18px;}
+.kcard{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.06);border-left:4px solid var(--r);}
+.kcard.g{border-left-color:var(--gn);}
+.kcard.b{border-left-color:var(--bl);}
+.kcard.o{border-left-color:var(--og);}
+.kcard.p{border-left-color:var(--pu);}
+.kv{font-size:28px;font-weight:800;line-height:1;}
+.kl{font-size:11px;color:var(--mu);margin-top:4px;}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:var(--bk);color:#fff;padding:9px 13px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+tbody td{padding:9px 13px;border-bottom:1px solid #f2f2f2;font-size:13px;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:#fafafa;}
+.tbl-foot{padding:9px 16px;font-size:11px;color:var(--mu);border-top:1px solid var(--br);}
+.ab{background:var(--gr);border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;transition:background .15s;}
+.ab:hover{background:var(--br);}
+.ab-r{background:#fce7e7;color:var(--r);}
+.ab-g{background:var(--gb);color:var(--gn);}
+.ab-b{background:var(--bb);color:var(--bl);}
+
+/* Form groups */
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:11px;}
+.fg label{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px;}
+.req-star{color:var(--r);}
+.fg input,.fg select,.fg textarea{border:1.5px solid var(--br);border-radius:8px;padding:9px 12px;font-size:14px;outline:none;background:#fafafa;transition:border-color .15s;width:100%;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--r);background:#fff;}
+.fg textarea{resize:vertical;min-height:68px;}
+.fg-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fg-grid2 .fg{margin-bottom:0;}
+.fg-full{grid-column:span 2;}
+.pass-wrap{position:relative;}
+.pass-wrap input{padding-right:40px;}
+.pass-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#aaa;font-size:15px;cursor:pointer;padding:4px;}
+
+/* Toggle buttons */
+.tog-row{display:flex;gap:6px;flex-wrap:wrap;}
+.tog-btn{padding:8px 12px;border:1.5px solid var(--br);border-radius:8px;background:#fafafa;font-size:12px;font-weight:600;text-align:center;color:var(--mu);transition:all .15s;cursor:pointer;}
+.tog-btn.sel{border-color:var(--r);background:#fff5f5;color:var(--r);}
+.tog-btn.sel-g{border-color:var(--gn);background:var(--gb);color:var(--gn);}
+
+/* ══ MOBILE SPECIFIC ══ */
+.m-hero{background:linear-gradient(135deg,var(--bk),#2a2a2a);padding:16px 14px;}
+.m-hero-hi{color:#888;font-size:12px;}
+.m-hero-name{color:#fff;font-size:20px;font-weight:800;margin-top:1px;}
+.m-hero-date{color:#555;font-size:11px;margin-top:2px;}
+.m-contact{background:rgba(200,16,46,.12);border:1px solid rgba(200,16,46,.25);border-radius:10px;padding:10px 12px;margin-top:10px;}
+.mc-lbl{color:#ff7070;font-size:10px;font-weight:700;}
+.mc-name{color:#fff;font-size:13px;font-weight:700;margin-top:2px;}
+.mc-phone{color:var(--r);font-size:16px;font-weight:800;}
+.mc-dev{color:#444;font-size:10px;margin-top:3px;}
+.m-kpi{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:12px 14px 0;}
+.m-kcard{background:#fff;border-radius:13px;padding:13px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.m-kcard.acc{background:var(--r);}
+.m-kcard.acc .m-kv{color:#fff;}
+.m-kcard.acc .m-kl{color:rgba(255,255,255,.7);}
+.m-kv{font-size:24px;font-weight:800;line-height:1;}
+.m-kl{font-size:11px;color:var(--mu);margin-top:3px;}
+.m-sec{padding:12px 14px;}
+.m-sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.m-sec-title{font-size:15px;font-weight:800;}
+.m-more{color:var(--r);font-size:12px;font-weight:600;background:none;border:none;}
+.m-mini{background:#fff;border-radius:11px;padding:10px 13px;margin-bottom:7px;border-left:3px solid var(--r);box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.mm-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.mm-title{font-size:13px;font-weight:700;}
+.mm-sub{font-size:11px;color:var(--mu);}
+.cat-scroll{display:flex;gap:7px;overflow-x:auto;padding:11px 14px 4px;scrollbar-width:none;}
+.cat-scroll::-webkit-scrollbar{display:none;}
+.cat-chip{flex-shrink:0;padding:7px 13px;border-radius:20px;border:1.5px solid var(--br);background:#fff;font-size:12px;font-weight:600;color:var(--mu);white-space:nowrap;transition:all .15s;cursor:pointer;}
+.cat-chip.act{background:var(--r);border-color:var(--r);color:#fff;}
+
+/* Route card */
+.rc{background:#fff;border-radius:13px;padding:12px 14px;margin:0 0 9px;border-left:4px solid var(--r);box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.rc-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:7px;margin-bottom:6px;}
+.rc-tech{font-size:13px;font-weight:700;flex:1;}
+.rc-path{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);margin-bottom:5px;flex-wrap:wrap;}
+.rc-loc{background:var(--gr);padding:3px 7px;border-radius:5px;font-weight:600;color:var(--tx);font-size:11px;}
+.rc-arr{color:var(--r);font-weight:700;}
+.rc-meta{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px;}
+.rc-m{font-size:11px;color:var(--mu);}
+.rc-foot{display:flex;align-items:center;justify-content:space-between;gap:7px;flex-wrap:wrap;}
+
+/* Order card */
+.oc{background:#fff;border-radius:13px;padding:12px 14px;margin:0 0 9px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.oc-id{font-size:10px;color:var(--mu);font-weight:600;margin-bottom:2px;}
+.oc-obj{font-size:13px;font-weight:700;margin-bottom:2px;}
+.oc-tech{font-size:12px;color:var(--mu);margin-bottom:6px;}
+.oc-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px;}
+.oc-meta{font-size:10px;color:var(--mu);}
+.oc-acts{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
+.oc-btn{background:var(--gr);border:none;border-radius:7px;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer;}
+.oc-btn.g{background:var(--gb);color:var(--gn);}
+.oc-btn.r{background:#fce7e7;color:var(--r);}
+.oc-btn.b{background:var(--bb);color:var(--bl);}
+.oc-comment{font-size:11px;color:var(--mu);margin:3px 0;font-style:italic;}
+
+/* FP */
+.fp-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:12px 14px 0;}
+.fp-kpi{background:#fff;border-radius:11px;padding:9px 6px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.fp-kpi .n{font-size:20px;font-weight:800;}
+.fp-kpi .l{font-size:9px;color:var(--mu);margin-top:2px;}
+.map-wrap{background:#fff;border-radius:13px;overflow:hidden;margin:12px 14px 0;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.map-hdr{background:var(--bk);padding:10px 13px;}
+.map-hdr h3{color:#fff;font-size:13px;font-weight:700;}
+.map-frame{width:100%;height:220px;display:block;border:none;}
+.map-chips{padding:9px 11px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--br);}
+.mchip{background:var(--r);color:#fff;border:none;border-radius:7px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;}
+.fp-list{padding:10px 14px 0;}
+.fp-obj{background:#fff;border-radius:13px;margin-bottom:9px;box-shadow:0 1px 4px rgba(0,0,0,.05);overflow:hidden;}
+.fp-hd{padding:12px 13px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .15s;}
+.fp-hd.op{border-bottom:1px solid var(--br);}
+.fp-hd h4{font-size:13px;font-weight:700;}
+.fp-hd p{font-size:10px;color:var(--mu);margin-top:1px;}
+.fp-hr{display:flex;align-items:center;gap:6px;}
+.fp-tot{background:var(--r);color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;}
+.fp-arr{color:#ccc;font-size:13px;transition:transform .2s;flex-shrink:0;}
+.fp-arr.op{transform:rotate(180deg);}
+.fp-body{display:none;padding:11px 13px;}
+.fp-body.op{display:block;}
+.lifts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px;}
+.lc{background:var(--gr);border-radius:9px;padding:9px;}
+.lc-n{font-size:10px;color:var(--mu);}
+.lc-nm{font-size:11px;font-weight:700;margin:1px 0;}
+.lc-m{font-size:10px;color:var(--mu);margin-bottom:4px;}
+/* Onsite dates */
+.onsite-dates{font-size:11px;color:var(--bl);font-weight:600;margin:3px 0;}
+
+/* More page */
+.more-page{padding:12px 14px 0;}
+.more-user{background:var(--bk);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.more-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;}
+.more-name{color:#fff;font-size:15px;font-weight:700;}
+.more-role{color:#888;font-size:12px;margin-top:2px;}
+.more-sec{font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.4px;margin:13px 0 6px;}
+.more-item{background:#fff;border-radius:11px;padding:12px 13px;display:flex;align-items:center;gap:11px;margin-bottom:5px;box-shadow:0 1px 3px rgba(0,0,0,.05);border:none;width:100%;text-align:left;cursor:pointer;}
+.more-item:active{background:#f5f5f5;}
+.mi-ico{font-size:17px;width:32px;height:32px;background:var(--gr);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mi-lbl{font-size:13px;font-weight:600;flex:1;}
+.mi-arr{color:#ccc;font-size:15px;}
+.mi-badge{background:var(--r);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;}
+
+/* Stats */
+.stat-c{background:#fff;border-radius:13px;padding:13px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05);border-left:4px solid var(--r);}
+.stat-c.g{border-left-color:var(--gn);}
+.stat-c.b{border-left-color:var(--bl);}
+.sv{font-size:26px;font-weight:800;}
+.sl{font-size:11px;color:var(--mu);margin-top:3px;}
+.chart-box{background:#fff;border-radius:13px;padding:13px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.chart-box h4{font-size:14px;font-weight:700;margin-bottom:12px;}
+.bar-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.bar-lbl{font-size:11px;color:var(--mu);min-width:90px;text-align:right;flex-shrink:0;}
+.bar-track{flex:1;background:var(--gr);border-radius:20px;height:9px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:20px;background:var(--r);transition:width .7s;}
+.bar-fill.g{background:var(--gn);}
+.bar-fill.b{background:var(--bl);}
+.bar-val{font-size:11px;font-weight:700;min-width:36px;}
+
+/* Driver card */
+.drv-card{background:#fff;border-radius:12px;padding:13px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05);border-left:4px solid var(--r);}
+.drv-card.hired{border-left-color:var(--og);}
+.drv-top{display:flex;align-items:center;gap:11px;margin-bottom:9px;}
+.drv-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;flex-shrink:0;}
+.drv-name{font-size:14px;font-weight:700;}
+.drv-role{font-size:12px;color:var(--mu);}
+.drv-type-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;display:inline-block;margin-top:2px;}
+.dt-own{background:var(--gb);color:var(--gn);}
+.dt-hired{background:var(--ob);color:var(--og);}
+.drv-btns{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* Object admin card */
+.obj-card{background:#fff;border-radius:12px;padding:13px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.obj-name{font-size:14px;font-weight:700;margin-bottom:2px;}
+.obj-addr{font-size:12px;color:var(--mu);margin-bottom:6px;}
+
+/* Journal */
+.jrnl-item{padding:10px 14px;border-bottom:1px solid #f2f2f2;display:flex;align-items:flex-start;gap:10px;}
+.jrnl-item:last-child{border-bottom:none;}
+.jrnl-ico{font-size:16px;flex-shrink:0;margin-top:1px;}
+.jrnl-text{flex:1;font-size:12px;color:var(--tx);line-height:1.5;}
+.jrnl-time{font-size:10px;color:var(--mu);white-space:nowrap;margin-top:2px;}
+.jrnl-who{font-size:10px;color:var(--bl);font-weight:600;}
+
+/* ══ SHEETS & MODALS ══ */
+.sheet-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:flex-end;}
+.sheet-ov.open{display:flex;}
+.sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);padding-bottom:env(safe-area-inset-bottom,0);}
+.sheet-ov.open .sheet{transform:translateY(0);}
+.sh-handle{width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:11px auto 0;}
+.sh-hdr{padding:13px 18px 11px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--br);position:sticky;top:0;background:#fff;z-index:10;}
+.sh-hdr h2{font-size:16px;font-weight:700;}
+.sh-close{background:var(--gr);border:none;width:28px;height:28px;border-radius:50%;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.sh-tech{background:var(--gr);padding:11px 18px;display:flex;gap:11px;align-items:center;}
+.sh-ico{font-size:28px;}
+.sh-tname{font-size:14px;font-weight:700;}
+.sh-tmodel{font-size:11px;color:var(--mu);}
+.sh-specs{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+.sh-sp{background:#fff;border:1px solid var(--br);border-radius:4px;padding:2px 7px;font-size:10px;}
+.sh-sp b{color:var(--r);}
+.sh-body{padding:14px 18px 22px;}
+.m-fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.m-fg label{font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px;}
+.m-fg input,.m-fg select,.m-fg textarea{border:1.5px solid var(--br);border-radius:10px;padding:12px 14px;font-size:15px;outline:none;background:#fafafa;transition:border-color .15s;-webkit-appearance:none;width:100%;}
+.m-fg input:focus,.m-fg select:focus,.m-fg textarea:focus{border-color:var(--r);background:#fff;}
+.m-fg textarea{resize:none;height:75px;}
+.m-pass-wrap{position:relative;}
+.m-pass-wrap input{padding-right:42px;}
+.m-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#aaa;font-size:16px;cursor:pointer;padding:4px;}
+.m-tog-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.m-tog-btn{padding:11px 5px;border:1.5px solid var(--br);border-radius:10px;background:#fafafa;font-size:12px;font-weight:600;text-align:center;color:var(--mu);transition:all .15s;cursor:pointer;}
+.m-tog-btn.sel{border-color:var(--r);background:#fff5f5;color:var(--r);}
+.m-urg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.m-ub{padding:10px 4px;border:1.5px solid var(--br);border-radius:10px;background:#fafafa;font-size:12px;font-weight:600;text-align:center;color:var(--mu);transition:all .15s;cursor:pointer;}
+.m-ub.sel{border-color:var(--r);background:#fff5f5;color:var(--r);}
+.m-submit{width:100%;background:var(--r);color:#fff;border:none;padding:15px;border-radius:12px;font-size:16px;font-weight:700;margin-top:4px;cursor:pointer;}
+.custom-inp{display:none;margin-top:7px;border:1.5px solid var(--br);border-radius:10px;padding:12px 14px;font-size:15px;outline:none;background:#fafafa;width:100%;}
+.custom-inp:focus{border-color:var(--r);background:#fff;}
+.cost-req{color:var(--r);font-size:10px;}
+.reg-hint{background:var(--bb);border:1px solid var(--bl);border-radius:9px;padding:9px 12px;font-size:12px;color:var(--bl);font-weight:600;margin-bottom:12px;}
+.time-note{display:none;margin-top:6px;background:var(--ob);border:1px solid var(--og);border-radius:7px;padding:8px 11px;font-size:12px;color:var(--og);font-weight:600;}
+.contact-block{display:none;border:1.5px solid var(--br);border-radius:10px;padding:12px 14px;margin-top:7px;background:#fafafa;}
+.contact-block h4{font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;}
+.promo-row{display:flex;gap:7px;margin-bottom:8px;}
+.promo-inp{flex:1;border:1.5px solid var(--br);border-radius:9px;padding:10px 13px;font-size:15px;outline:none;background:#fafafa;text-transform:uppercase;letter-spacing:2px;}
+.promo-ok-msg{color:var(--gn);font-size:12px;font-weight:700;margin-bottom:8px;display:none;}
+
+/* Modal */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;display:none;align-items:center;justify-content:center;padding:18px;}
+.modal-ov.open{display:flex;}
+.modal-box{background:#fff;border-radius:16px;width:100%;max-width:580px;max-height:92vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.35);}
+.modal-hdr{background:var(--bk);padding:15px 20px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.modal-hdr h2{color:#fff;font-size:15px;font-weight:700;}
+.modal-close{background:rgba(255,255,255,.1);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.modal-body{padding:18px 20px 22px;}
+.modal-tech{background:var(--gr);border-radius:10px;padding:11px 14px;display:flex;gap:11px;align-items:center;margin-bottom:14px;}
+.mt-ico{font-size:30px;}
+.mt-name{font-size:14px;font-weight:700;}
+.mt-model{font-size:11px;color:var(--mu);}
+.mt-specs{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+.mt-s{background:#fff;border:1px solid var(--br);border-radius:4px;padding:2px 7px;font-size:10px;}
+.mt-s b{color:var(--r);}
+.modal-submit{width:100%;background:var(--r);color:#fff;border:none;padding:12px;border-radius:9px;font-size:14px;font-weight:700;margin-top:12px;cursor:pointer;}
+.modal-submit:hover{background:var(--r2);}
+/* Status opts */
+.st-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+.st-opt{padding:12px 14px;border:1.5px solid var(--br);border-radius:10px;font-size:14px;font-weight:600;background:#fafafa;text-align:left;cursor:pointer;transition:all .15s;}
+.st-opt:hover{border-color:var(--r);}
+.st-opt.sel{border-color:var(--r);background:#fff5f5;color:var(--r);}
+/* Phone sheet */
+.ph-body{padding:0 18px 24px;}
+.ph-av-big{width:64px;height:64px;border-radius:50%;margin:4px auto 9px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;}
+.ph-name-big{font-size:16px;font-weight:700;text-align:center;margin-bottom:2px;}
+.ph-role-big{font-size:12px;color:var(--mu);text-align:center;margin-bottom:13px;}
+.ph-num-box{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--gr);border-radius:12px;padding:12px;margin-bottom:11px;}
+.ph-num{font-size:19px;font-weight:800;}
+.ph-call{width:100%;background:var(--gn);color:#fff;border:none;padding:14px;border-radius:11px;font-size:14px;font-weight:700;margin-bottom:7px;cursor:pointer;}
+.ph-sms{width:100%;background:var(--gr);color:var(--tx);border:none;padding:14px;border-radius:11px;font-size:14px;font-weight:600;cursor:pointer;}
+
+/* ══ TOAST ══ */
+.toast{position:fixed;top:66px;left:50%;transform:translateX(-50%) translateY(-14px);background:var(--bk);color:#fff;padding:10px 16px;border-radius:100px;font-weight:600;font-size:13px;box-shadow:0 4px 18px rgba(0,0,0,.3);opacity:0;transition:all .3s;z-index:9999;white-space:nowrap;pointer-events:none;max-width:calc(100vw - 28px);overflow:hidden;text-overflow:ellipsis;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Profile page */
+.profile-page{padding:14px;}
+.profile-card{background:#fff;border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.profile-av-big{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;margin:0 auto 10px;}
+.profile-name{font-size:16px;font-weight:800;text-align:center;margin-bottom:3px;}
+.profile-role{font-size:12px;color:var(--mu);text-align:center;margin-bottom:12px;}
+.profile-info{display:flex;flex-direction:column;gap:8px;}
+.pi-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;}
+.pi-row:last-child{border-bottom:none;}
+.pi-lbl{font-size:12px;color:var(--mu);}
+.pi-val{font-size:13px;font-weight:600;}
+.pi-val.mono{font-family:monospace;letter-spacing:1px;}
+
+/* Firebase status */
+.fb-status{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:5px 10px;border-radius:20px;margin-left:auto;}
+.fb-status.connected{background:var(--gb);color:var(--gn);}
+.fb-status.offline{background:#fce7e7;color:var(--r);}
+.fb-dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
+
+/* Onsite tech item */
+.ot-item{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f0f0f0;gap:8px;}
+.ot-item:last-child{border-bottom:none;}
+.ot-left{flex:1;}
+.ot-name{font-size:13px;font-weight:600;}
+.ot-dates{font-size:11px;color:var(--bl);margin-top:2px;}
+.ot-right{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">GMS</div>
+  <div class="loader-text">GMS Group</div>
+  <div class="loader-sub">Загрузка системы...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginWrap">
+  <div class="lcard">
+    <div class="l-logo">
+      <div class="l-icon">GMS</div>
+      <div><div class="l-nm">GMS Group</div><span class="l-sb">Управление техникой</span></div>
+    </div>
+    <div class="l-h">Вход в систему</div>
+    <div class="l-s">Введите логин и пароль</div>
+    <div class="l-field">
+      <label>Логин</label>
+      <div class="l-inp-wrap"><input class="l-inp" id="l-login" type="text" placeholder="Ваш логин" autocomplete="off"/></div>
+    </div>
+    <div class="l-field">
+      <label>Пароль</label>
+      <div class="l-inp-wrap">
+        <input class="l-inp" id="l-pass" type="password" placeholder="Пароль"/>
+        <button class="l-eye" onclick="togglePass('l-pass',this)" tabindex="-1">👁</button>
+      </div>
+    </div>
+    <div class="l-err" id="l-err"></div>
+    <button class="l-btn" onclick="doLogin()">Войти →</button>
+    <div class="l-note">⚡ Личная разработка ведущего специалиста по автотехнике GMS Group</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+<!-- DESKTOP -->
+<div class="d-wrap" id="dWrap">
+  <aside class="d-side">
+    <div class="d-logo">
+      <div class="d-logo-b">GMS</div>
+      <div><div class="d-logo-n">GMS Group</div><span class="d-logo-s">Управление техникой</span></div>
+    </div>
+    <div class="d-nav" id="dNav">
+      <div class="d-sec">Навигация</div>
+      <button class="d-ni act" onclick="dPage('home',this)"><span class="d-ni-ico">🏠</span>Главная</button>
+      <button class="d-ni" onclick="dPage('catalog',this)"><span class="d-ni-ico">📋</span>Техника</button>
+      <button class="d-ni" onclick="dPage('orders',this)"><span class="d-ni-ico">📝</span>Заявки<span class="d-ni-badge" id="d-badge-orders"></span></button>
+      <button class="d-ni" onclick="dPage('routes',this)"><span class="d-ni-ico">🚛</span>Рейсы</button>
+      <button class="d-ni" onclick="dPage('onsite',this)"><span class="d-ni-ico">🏗</span>На объектах</button>
+      <button class="d-ni" onclick="dPage('facades',this)"><span class="d-ni-ico">🔴</span>Подъёмники</button>
+      <button class="d-ni" onclick="dPage('stats',this)"><span class="d-ni-ico">📊</span>Статистика</button>
+      <button class="d-ni" onclick="dPage('profile',this)"><span class="d-ni-ico">👤</span>Профиль</button>
+      <!-- Руководитель -->
+      <div class="d-sec manager-el" style="display:none">Мой объект</div>
+      <button class="d-ni manager-el" style="display:none" onclick="dPage('my-team',this)"><span class="d-ni-ico">👥</span>Мои сотрудники</button>
+      <!-- Администратор -->
+      <div class="d-sec admin-el" style="display:none">Администратор</div>
+      <button class="d-ni admin-el" style="display:none" onclick="dPage('drivers',this)"><span class="d-ni-ico">🚗</span>Водители</button>
+      <button class="d-ni admin-el" style="display:none" onclick="dPage('objects',this)"><span class="d-ni-ico">📍</span>Объекты</button>
+      <button class="d-ni admin-el" style="display:none" onclick="dPage('users',this)"><span class="d-ni-ico">👥</span>Пользователи</button>
+      <button class="d-ni admin-el" style="display:none" onclick="dPage('promos',this)"><span class="d-ni-ico">🔑</span>Промокоды</button>
+      <button class="d-ni admin-el" style="display:none" onclick="dPage('journal',this)"><span class="d-ni-ico">📒</span>Журнал действий</button>
+    </div>
+    <div class="d-contact">
+      <div class="d-contact-lbl">📞 Логист / Администратор</div>
+      <div class="d-contact-name">Юрченков Владислав</div>
+      <div class="d-contact-phone">8-906-099-88-09</div>
+      <div class="d-contact-dev">⚡ Личная разработка ведущего специалиста</div>
+    </div>
+    <div class="d-bottom">
+      <button class="d-user-btn" onclick="dPage('profile',null)">
+        <div class="d-uav" id="d-uav"></div>
+        <span class="d-uname" id="d-uname"></span>
+        <div class="fb-status" id="d-fb-status"><div class="fb-dot"></div>...</div>
+      </button>
+    </div>
+  </aside>
+  <main class="d-main" id="dMain"></main>
+</div>
+
+<!-- MOBILE -->
+<div class="m-wrap" id="mWrap">
+  <header class="m-hdr">
+    <div class="m-hdr-logo">
+      <div class="m-hdr-b">GMS</div>
+      <span class="m-title" id="m-title">GMS Group</span>
+    </div>
+    <div class="m-hdr-r">
+      <button class="m-new" onclick="openOrder(null)">＋</button>
+      <button class="m-avbtn" onclick="mPage('more')">
+        <div class="m-av" id="m-hdr-av"></div>
+        <span class="m-avname" id="m-hdr-avname"></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="m-scroll" id="mScroll">
+
+    <!-- HOME -->
+    <div class="pg act" id="m-home">
+      <div class="m-hero">
+        <div class="m-hero-hi">Привет,</div>
+        <div class="m-hero-name" id="m-welcome">—</div>
+        <div class="m-hero-date" id="m-date">—</div>
+        <div class="m-contact">
+          <div class="mc-lbl">📞 Логист / Администратор</div>
+          <div class="mc-name">Юрченков Владислав</div>
+          <div class="mc-phone">8-906-099-88-09</div>
+          <div class="mc-dev">⚡ Личная разработка ведущего специалиста по автотехнике</div>
+        </div>
+      </div>
+      <div class="m-kpi">
+        <div class="m-kcard acc"><div class="m-kv" id="mk-routes">—</div><div class="m-kl">Рейсов</div></div>
+        <div class="m-kcard"><div class="m-kv" id="mk-fp">34</div><div class="m-kl">Подъёмников</div></div>
+        <div class="m-kcard"><div class="m-kv" id="mk-orders">—</div><div class="m-kl">Моих заявок</div></div>
+        <div class="m-kcard"><div class="m-kv" id="mk-objs">—</div><div class="m-kl">Объектов</div></div>
+      </div>
+      <div class="m-sec">
+        <div class="m-sec-hdr"><div class="m-sec-title">🚛 Рейсы</div><button class="m-more" onclick="mPage('routes')">Все →</button></div>
+        <div id="m-home-routes"></div>
+      </div>
+      <div class="m-sec" style="padding-top:0">
+        <div class="m-sec-hdr"><div class="m-sec-title">📝 Мои заявки</div><button class="m-more" onclick="mPage('orders')">Все →</button></div>
+        <div id="m-home-orders"></div>
+      </div>
+    </div>
+
+    <!-- ROUTES -->
+    <div class="pg" id="m-routes">
+      <div class="cat-scroll" id="m-rt-tabs">
+        <div class="cat-chip act" onclick="mFilterRoutes('all',this)">Все</div>
+        <div class="cat-chip" onclick="mFilterRoutes('manip',this)">🏗 Манипуляторы</div>
+        <div class="cat-chip" onclick="mFilterRoutes('gazel',this)">🚐 Газели</div>
+        <div class="cat-chip" onclick="mFilterRoutes('long',this)">🚛 Длинномеры</div>
+      </div>
+      <div style="padding:6px 14px 0" id="m-routes-list"></div>
+    </div>
+
+    <!-- FACADES -->
+    <div class="pg" id="m-facades">
+      <div class="fp-kpis">
+        <div class="fp-kpi"><div class="n" id="fp-t" style="color:var(--r)">34</div><div class="l">Всего</div></div>
+        <div class="fp-kpi"><div class="n" id="fp-w" style="color:var(--gn)">27</div><div class="l">Работа</div></div>
+        <div class="fp-kpi"><div class="n" id="fp-r" style="color:var(--og)">5</div><div class="l">Обсл.</div></div>
+        <div class="fp-kpi"><div class="n" id="fp-i" style="color:var(--bl)">2</div><div class="l">Простой</div></div>
+      </div>
+      <div class="map-wrap">
+        <div class="map-hdr"><h3>Карта объектов GMS</h3></div>
+        <iframe class="map-frame" src="https://yandex.ru/map-widget/v1/?ll=37.62%2C55.76&z=10&l=map&pt=37.938%2C55.796%2Cpm2rdm~37.764%2C55.726%2Cpm2rdm~37.506%2C55.766%2Cpm2blm~37.276%2C55.681%2Cpm2vm~37.420%2C55.780%2Cpm2blm~37.541%2C55.873%2Cpm2blm~37.200%2C55.990%2Cpm2blm~37.427%2C55.718%2Cpm2blm" title="GMS" allowfullscreen></iframe>
+        <div class="map-chips">
+          <button class="mchip" onclick="mOpenFP('balashiha')">🔴 Балашиха — 27 ФП</button>
+          <button class="mchip" onclick="mOpenFP('aquilon')">🔴 Аквилон — 7 ФП</button>
+        </div>
+      </div>
+      <div class="fp-list" id="m-fp-list"></div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="pg" id="m-orders">
+      <div class="cat-scroll" id="m-ord-tabs">
+        <div class="cat-chip act" onclick="mFilterOrders('all',this)">Все</div>
+        <div class="cat-chip" onclick="mFilterOrders('new',this)">🆕 Новые</div>
+        <div class="cat-chip" onclick="mFilterOrders('active',this)">🔄 В работе</div>
+        <div class="cat-chip" onclick="mFilterOrders('done',this)">✔️ Завершены</div>
+      </div>
+      <div style="padding:6px 14px 0" id="m-orders-list"></div>
+    </div>
+
+    <!-- MORE -->
+    <div class="pg" id="m-more">
+      <div class="more-page">
+        <div class="more-user">
+          <div class="more-av" id="m-more-av"></div>
+          <div>
+            <div class="more-name" id="m-more-name"></div>
+            <div class="more-role" id="m-more-role"></div>
+          </div>
+        </div>
+        <div class="m-contact" style="margin-bottom:12px">
+          <div class="mc-lbl">📞 Логист / Администратор</div>
+          <div class="mc-name">Юрченков Владислав · 8-906-099-88-09</div>
+          <div class="mc-dev">⚡ Личная разработка ведущего специалиста</div>
+        </div>
+        <div class="more-sec">Разделы</div>
+        <button class="more-item" onclick="mPage('catalog')"><div class="mi-ico">📋</div><div class="mi-lbl">Каталог техники</div><div class="mi-arr">›</div></button>
+        <button class="more-item" onclick="mPage('onsite')"><div class="mi-ico">🏗</div><div class="mi-lbl">Техника на объектах</div><div class="mi-arr">›</div></button>
+        <button class="more-item" onclick="mPage('stats')"><div class="mi-ico">📊</div><div class="mi-lbl">Статистика</div><div class="mi-arr">›</div></button>
+        <button class="more-item" onclick="mPage('profile')"><div class="mi-ico">👤</div><div class="mi-lbl">Профиль / Пароль</div><div class="mi-arr">›</div></button>
+        <div class="more-sec manager-el" style="display:none">Мой объект</div>
+        <button class="more-item manager-el" style="display:none" onclick="mPage('my-team')"><div class="mi-ico">👥</div><div class="mi-lbl">Мои сотрудники</div><div class="mi-arr">›</div></button>
+        <div class="more-sec admin-el" style="display:none">Администратор</div>
+        <button class="more-item admin-el" style="display:none" onclick="mPage('drivers')"><div class="mi-ico">🚗</div><div class="mi-lbl">Водители</div><div class="mi-arr">›</div></button>
+        <button class="more-item admin-el" style="display:none" onclick="mPage('obj-admin')"><div class="mi-ico">📍</div><div class="mi-lbl">Объекты</div><div class="mi-arr">›</div></button>
+        <button class="more-item admin-el" style="display:none" onclick="mPage('users')"><div class="mi-ico">👥</div><div class="mi-lbl">Пользователи</div><div class="mi-arr">›</div></button>
+        <button class="more-item admin-el" style="display:none" onclick="mPage('promos')"><div class="mi-ico">🔑</div><div class="mi-lbl">Промокоды</div><div class="mi-arr">›</div></button>
+        <button class="more-item admin-el" style="display:none" onclick="mPage('journal')"><div class="mi-ico">📒</div><div class="mi-lbl">Журнал действий</div><div class="mi-arr">›</div></button>
+        <div class="more-sec">Аккаунт</div>
+        <button class="more-item" onclick="logout()"><div class="mi-ico" style="background:#fce7e7">↩</div><div class="mi-lbl" style="color:var(--r)">Выйти</div></button>
+      </div>
+    </div>
+
+    <!-- CATALOG -->
+    <div class="pg" id="m-catalog">
+      <div class="cat-scroll" id="m-cat-tabs">
+        <div class="cat-chip act" onclick="mShowCat('all',this)">Вся</div>
+        <div class="cat-chip" onclick="mShowCat('manip',this)">Манипуляторы</div>
+        <div class="cat-chip" onclick="mShowCat('crane',this)">Автокраны</div>
+        <div class="cat-chip" onclick="mShowCat('lift',this)">Автовышки</div>
+        <div class="cat-chip" onclick="mShowCat('electro',this)">Электротехника</div>
+        <div class="cat-chip" onclick="mShowCat('cargo',this)">Грузовые</div>
+      </div>
+      <div style="margin-top:6px" id="m-tech-list"></div>
+    </div>
+
+    <!-- ONSITE -->
+    <div class="pg" id="m-onsite"><div style="padding:14px 14px 0" id="m-onsite-list"></div></div>
+
+    <!-- STATS -->
+    <div class="pg" id="m-stats">
+      <div style="padding:12px 14px 0">
+        <div class="stat-c"><div class="sv" id="ms-routes">0</div><div class="sl">Рейсов за месяц</div></div>
+        <div class="stat-c g"><div class="sv" id="ms-orders">0</div><div class="sl">Заявок создано</div></div>
+        <div class="stat-c b"><div class="sv">0 ₽</div><div class="sl">Затраты на технику</div></div>
+        <div class="chart-box"><h4>Статистика накапливается</h4><div style="color:var(--mu);font-size:13px">Данные будут отображаться по мере работы с системой</div></div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="pg" id="m-profile">
+      <div class="profile-page" id="m-profile-content"></div>
+    </div>
+
+    <!-- MY TEAM (manager) -->
+    <div class="pg" id="m-my-team">
+      <div style="padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:15px;font-weight:800">👥 Мои сотрудники</div>
+          <button class="btn-r" style="font-size:12px;padding:7px 13px" onclick="openAddUser(true)">＋ Добавить</button>
+        </div>
+        <div id="m-team-list"></div>
+      </div>
+    </div>
+
+    <!-- DRIVERS -->
+    <div class="pg" id="m-drivers">
+      <div style="padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:15px;font-weight:800">🚗 Водители</div>
+          <button class="btn-r" style="font-size:12px;padding:7px 13px" onclick="openModal('addDrvOv')">＋ Добавить</button>
+        </div>
+        <div class="cat-scroll" id="m-drv-tabs" style="padding:0 0 8px">
+          <div class="cat-chip act" onclick="mFilterDrv('all',this)">Все</div>
+          <div class="cat-chip" onclick="mFilterDrv('own',this)">✅ Свои</div>
+          <div class="cat-chip" onclick="mFilterDrv('hired',this)">🔄 Наёмные</div>
+        </div>
+        <div id="m-drv-list"></div>
+      </div>
+    </div>
+
+    <!-- OBJECTS ADMIN -->
+    <div class="pg" id="m-obj-admin">
+      <div style="padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:15px;font-weight:800">📍 Объекты</div>
+          <button class="btn-r" style="font-size:12px;padding:7px 13px" onclick="openAddObject()">＋ Добавить</button>
+        </div>
+        <div id="m-obj-list"></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="pg" id="m-users">
+      <div style="padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:15px;font-weight:800">👥 Пользователи</div>
+          <button class="btn-r" style="font-size:12px;padding:7px 13px" onclick="openAddUser(false)">＋ Добавить</button>
+        </div>
+        <div id="m-users-list"></div>
+      </div>
+    </div>
+
+    <!-- PROMOS -->
+    <div class="pg" id="m-promos">
+      <div style="padding:14px">
+        <div style="font-size:15px;font-weight:800;margin-bottom:12px">🔑 Промокоды</div>
+        <div style="background:var(--ob);border:1px solid var(--og);border-radius:11px;padding:11px 13px;font-size:12px;color:var(--og);font-weight:600;margin-bottom:12px">Промокод разрешает подачу заявки вне регламента</div>
+        <button style="width:100%;background:var(--r);color:#fff;border:none;border-radius:11px;padding:14px;font-size:14px;font-weight:700;margin-bottom:14px" onclick="generatePromo()">🔑 Сгенерировать промокод</button>
+        <div id="m-promo-generated" style="display:none;background:var(--gb);border:1px solid var(--gn);border-radius:11px;padding:14px;text-align:center;margin-bottom:14px">
+          <div style="font-size:11px;color:var(--gn);font-weight:700;margin-bottom:6px">ПРОМОКОД ГОТОВ — ДЕЙСТВУЕТ 24 ЧАСА</div>
+          <div id="m-promo-code" style="font-size:28px;font-weight:900;letter-spacing:5px"></div>
+        </div>
+        <div id="m-promo-list"></div>
+      </div>
+    </div>
+
+    <!-- JOURNAL -->
+    <div class="pg" id="m-journal">
+      <div style="padding:14px">
+        <div style="font-size:15px;font-weight:800;margin-bottom:12px">📒 Журнал действий</div>
+        <div class="card">
+          <div id="m-journal-list" style="max-height:600px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /m-scroll -->
+
+  <nav class="m-bnav">
+    <button class="m-bn act" id="bn-home" onclick="mPage('home')"><span class="m-bn-ico">🏠</span><span class="m-bn-lbl">Главная</span></button>
+    <button class="m-bn" id="bn-routes" onclick="mPage('routes')"><span class="m-bn-ico">🚛</span><span class="m-bn-lbl">Рейсы</span></button>
+    <button class="m-bn" id="bn-facades" onclick="mPage('facades')"><span class="m-bn-ico">🔴</span><span class="m-bn-lbl">Подъёмники</span></button>
+    <button class="m-bn" id="bn-orders" onclick="mPage('orders')"><span class="m-bn-ico">📝</span><span class="m-bn-lbl">Заявки</span><span class="m-bn-badge" id="m-orders-badge" style="display:none"></span></button>
+    <button class="m-bn" id="bn-more" onclick="mPage('more')"><span class="m-bn-ico">☰</span><span class="m-bn-lbl">Ещё</span></button>
+  </nav>
+  <button class="fab" id="fab" onclick="openOrder(null)">＋</button>
+</div>
+
+</div><!-- /app -->
+
+<!-- ═══ ORDER SHEET (mobile) ═══ -->
+<div class="sheet-ov" id="orderOv" onclick="sheetBg(event,'orderOv')">
+  <div class="sheet" id="orderSheet">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr"><h2 id="s-title">Новая заявка</h2><button class="sh-close" onclick="closeSheet('orderOv')">✕</button></div>
+    <div id="s-tech" style="display:none"><div class="sh-tech"><div class="sh-ico" id="s-ico"></div><div><div class="sh-tname" id="s-name"></div><div class="sh-tmodel" id="s-model"></div><div class="sh-specs" id="s-specs"></div></div></div></div>
+    <div class="sh-body" id="s-form"></div>
+  </div>
+</div>
+
+<!-- ORDER MODAL (desktop) -->
+<div class="modal-ov" id="dOrderOv" onclick="modalBg(event,'dOrderOv')">
+  <div class="modal-box">
+    <div class="modal-hdr"><h2 id="d-o-title">Новая заявка</h2><button class="modal-close" onclick="closeModal('dOrderOv')">✕</button></div>
+    <div id="d-o-tech"></div>
+    <div class="modal-body" id="d-o-form"></div>
+  </div>
+</div>
+
+<!-- STATUS MODAL -->
+<div class="modal-ov" id="statusOv" onclick="modalBg(event,'statusOv')">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-hdr"><h2>Статус заявки</h2><button class="modal-close" onclick="closeModal('statusOv')">✕</button></div>
+    <div class="modal-body">
+      <div id="status-info" style="background:var(--gr);border-radius:9px;padding:11px;margin-bottom:14px;font-size:13px;line-height:1.5"></div>
+      <div class="st-opts">
+        <button class="st-opt" onclick="selStatus(this,'Принята')">✅ Принята в работу</button>
+        <button class="st-opt" onclick="selStatus(this,'В работе')">🔄 В работе</button>
+        <button class="st-opt" onclick="selStatus(this,'Водитель едет')">🚛 Водитель едет</button>
+        <button class="st-opt" onclick="selStatus(this,'Выполнена')">✔️ Выполнена</button>
+        <button class="st-opt" onclick="selStatus(this,'Отказ')">❌ Отказ</button>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px">Комментарий</div>
+      <textarea id="status-comment" style="width:100%;border:1.5px solid var(--br);border-radius:9px;padding:10px;font-size:13px;outline:none;resize:none;height:68px;" placeholder="Причина отказа, уточнение..."></textarea>
+      <button class="modal-submit" onclick="saveStatus()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD DRIVER -->
+<div class="modal-ov" id="addDrvOv" onclick="modalBg(event,'addDrvOv')">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-hdr"><h2 id="drv-modal-h">Добавить водителя</h2><button class="modal-close" onclick="closeModal('addDrvOv')">✕</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Тип водителя</div>
+        <div class="tog-row">
+          <div class="tog-btn sel" onclick="selDrvType(this,'own')">✅ Постоянный (свой)</div>
+          <div class="tog-btn" onclick="selDrvType(this,'hired')">🔄 Наёмный (временный)</div>
+        </div>
+        <input type="hidden" id="drv-type" value="own"/>
+      </div>
+      <div class="fg"><label>ФИО <span class="req-star">*</span></label><input id="drv-name" type="text" placeholder="Петров Алексей Иванович"/></div>
+      <div class="fg"><label>Телефон <span class="req-star">*</span></label><input id="drv-phone" type="tel" placeholder="+7 (___) ___-__-__"/></div>
+      <div class="fg"><label>Роль / Техника</label><input id="drv-role" type="text" placeholder="Водитель манипулятора, Манипулятор 7т"/></div>
+      <div class="fg" id="drv-company-fg" style="display:none"><label>Компания (наёмный)</label><input id="drv-company" type="text" placeholder="ООО Стройтехника"/></div>
+      <input type="hidden" id="drv-edit-id" value=""/>
+      <button class="modal-submit" onclick="saveDriver()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD OBJECT -->
+<div class="modal-ov" id="addObjOv" onclick="modalBg(event,'addObjOv')">
+  <div class="modal-box" style="max-width:540px">
+    <div class="modal-hdr"><h2 id="obj-modal-h">Добавить объект</h2><button class="modal-close" onclick="closeModal('addObjOv')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg-grid2">
+        <div class="fg fg-full"><label>Название объекта <span class="req-star">*</span></label><input id="obj-name" type="text" placeholder="ЖК Ромашково"/></div>
+        <div class="fg fg-full"><label>Адрес <span class="req-star">*</span></label><input id="obj-addr" type="text" placeholder="г. Москва, ул. Ленина 1"/></div>
+        <div class="fg"><label>Ответственный</label><input id="obj-resp" type="text" placeholder="Иванов И.И."/></div>
+        <div class="fg"><label>Тип работ</label><input id="obj-type" type="text" placeholder="Фасад, остекление"/></div>
+        <div class="fg"><label>Кол-во ФП</label><input id="obj-fp" type="number" value="0" min="0"/></div>
+        <div class="fg"><label>Статус</label>
+          <select id="obj-status"><option value="active">Активный</option><option value="plan">Плановый</option><option value="done">Завершён</option></select>
+        </div>
+      </div>
+      <!-- Техника на объекте -->
+      <div style="margin-top:12px">
+        <div style="font-size:12px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Техника на объекте</div>
+        <div id="obj-tech-items"></div>
+        <button type="button" class="btn-g" style="margin-top:8px;font-size:12px" onclick="addObjTechItem()">＋ Добавить технику</button>
+      </div>
+      <input type="hidden" id="obj-edit-id" value=""/>
+      <button class="modal-submit" id="obj-save-btn" onclick="saveObject()">Сохранить объект</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD USER -->
+<div class="modal-ov" id="addUserOv" onclick="modalBg(event,'addUserOv')">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-hdr"><h2 id="user-modal-h">Новый пользователь</h2><button class="modal-close" onclick="closeModal('addUserOv')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>Имя и фамилия <span class="req-star">*</span></label><input id="u-name" type="text" placeholder="Иванов Иван"/></div>
+      <div class="fg"><label>Должность / Объект</label><input id="u-obj" type="text" placeholder="Прораб, Объект Балашиха"/></div>
+      <div class="fg"><label>Привязать к объекту</label>
+        <select id="u-linked-obj">
+          <option value="">— Без привязки —</option>
+        </select>
+      </div>
+      <div class="fg"><label>Логин <span class="req-star">*</span></label><input id="u-login" type="text" placeholder="ivanov_i" autocomplete="off"/></div>
+      <div class="fg"><label>Пароль <span class="req-star">*</span></label>
+        <div class="pass-wrap">
+          <input id="u-pass" type="password" placeholder="Минимум 6 символов"/>
+          <button class="pass-eye" onclick="togglePass('u-pass',this)" tabindex="-1">👁</button>
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Роль <span class="req-star">*</span></div>
+        <div class="tog-row">
+          <div class="tog-btn sel" onclick="selUserRole(this,'user')">👤 Пользователь</div>
+          <div class="tog-btn" onclick="selUserRole(this,'manager')">👔 Руководитель</div>
+        </div>
+        <input type="hidden" id="u-role" value="user"/>
+      </div>
+      <input type="hidden" id="u-edit-id" value=""/>
+      <button class="modal-submit" onclick="saveUser()">Создать пользователя</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHONE SHEET -->
+<div class="sheet-ov" id="phoneOv" onclick="sheetBg(event,'phoneOv')">
+  <div class="sheet" id="phoneSheet">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr"><h2>Контакт водителя</h2><button class="sh-close" onclick="closeSheet('phoneOv')">✕</button></div>
+    <div class="ph-body">
+      <div class="ph-av-big" id="ph-av"></div>
+      <div class="ph-name-big" id="ph-name"></div>
+      <div class="ph-role-big" id="ph-role"></div>
+      <div class="ph-num-box"><span>📞</span><span class="ph-num" id="ph-num"></span></div>
+      <button class="ph-call" onclick="fakeCall()">📞 Позвонить</button>
+      <button class="ph-sms" onclick="toast('💬 Готово')">💬 Написать сообщение</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT ONSITE MODAL (admin) -->
+<div class="modal-ov" id="onsiteEditOv" onclick="modalBg(event,'onsiteEditOv')">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-hdr"><h2 id="onsite-edit-h">Техника на объекте</h2><button class="modal-close" onclick="closeModal('onsiteEditOv')">✕</button></div>
+    <div class="modal-body">
+      <div id="onsite-edit-items"></div>
+      <button type="button" class="btn-g" style="margin-top:8px" onclick="addOnsiteItem()">＋ Добавить технику</button>
+      <button class="modal-submit" style="margin-top:14px" onclick="saveOnsiteEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════
+//  FIREBASE CONFIG — ВСТАВЬТЕ СВОИ ДАННЫЕ
+// ══════════════════════════════════════════
+const FB_CONFIG = {
+  apiKey:            "AIzaSyBAulTtVqW7I9T4Ffes0saTXbPAnlZBvZY",
+  authDomain:        "gms-technika.firebaseapp.com",
+  databaseURL:       "https://gms-technika-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "gms-technika",
+  storageBucket:     "gms-technika.firebasestorage.app",
+  messagingSenderId: "968572944495",
+  appId:             "1:968572944495:web:211afe87d69432d99c8d9a"
+};
+// EmailJS — вставьте ключи с emailjs.com
+const EJS_KEY      = 'ВСТАВЬТЕ_EJS_KEY';
+const EJS_SERVICE  = 'ВСТАВЬТЕ_SERVICE_ID';
+const EJS_TEMPLATE = 'ВСТАВЬТЕ_TEMPLATE_ID';
+const REPORT_EMAIL = 'gms.group@mail.ru';
+
+const ADMIN_LOGIN = 'Logist';
+const ADMIN_PASS  = 'G123123g';
+
+// ══════════════════════════════════════════
+//  FIREBASE INIT
+// ══════════════════════════════════════════
+let db = null;
+let fbReady = false;
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(FB_CONFIG);
+    db = firebase.database();
+    db.ref('.info/connected').on('value', snap => {
+      fbReady = snap.val() === true;
+      updateFBStatus();
+      if (fbReady) { loadAllData(); }
+    });
+  } catch(e) {
+    console.warn('Firebase не настроен, работаем локально:', e);
+    fbReady = false;
+    updateFBStatus();
+    loadLocalData();
+  }
+}
+
+function updateFBStatus() {
+  const el = document.getElementById('d-fb-status');
+  if (!el) return;
+  el.className = 'fb-status ' + (fbReady ? 'connected' : 'offline');
+  el.innerHTML = `<div class="fb-dot"></div>${fbReady ? 'Онлайн' : 'Офлайн'}`;
+}
+
+// ══════════════════════════════════════════
+//  ДАННЫЕ (локальный fallback)
+// ══════════════════════════════════════════
+const COLORS = ['#C8102E','#2563eb','#16a34a','#d97706','#7c3aed','#0891b2','#dc2626','#059669','#ea580c','#9333ea'];
+let colorIdx = 0;
+const nextColor = () => COLORS[colorIdx++ % COLORS.length];
+const initials  = n => n.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+
+let USERS = [
+  {id:'admin', name:'Юрченков Владислав', role:'admin', obj:'Вед. специалист по автотехнике',
+   login:ADMIN_LOGIN, pass:ADMIN_PASS, color:'#C8102E', ini:'ЮВ', linkedObj:''},
+];
+let DRIVERS = [
+  {id:'d1',name:'Петров Алексей',phone:'+7 (916) 234-56-78',color:'#C8102E',ini:'ПА',role:'Водитель манипулятора',type:'own',st:'free',company:''},
+  {id:'d2',name:'Козлов Иван',phone:'+7 (903) 345-67-89',color:'#2563eb',ini:'КИ',role:'Водитель манипулятора',type:'own',st:'free',company:''},
+  {id:'d3',name:'Фёдоров Дмитрий',phone:'+7 (915) 567-89-01',color:'#d97706',ini:'ФД',role:'Водитель газели',type:'own',st:'free',company:''},
+];
+let OBJECTS = [
+  {id:'o1',name:'Короленко 3а (Офис)',addr:'Москва, Короленко 3а',resp:'',fp:0,st:'active',type:'Офис',
+   tech:[{name:'Газель',dateFrom:'01.05.2026',dateTo:'31.12.2026',status:'w'}]},
+  {id:'o2',name:'База / Производство',addr:'Одинцово, Баковская 5',resp:'',fp:0,st:'active',type:'База',
+   tech:[{name:'Манипулятор 7т КМУ',dateFrom:'01.05.2026',dateTo:'31.12.2026',status:'w'},{name:'Газель',dateFrom:'01.05.2026',dateTo:'31.12.2026',status:'w'}]},
+  {id:'o3',name:'Балашиха, Струве 7',addr:'г. Балашиха, ул. Струве 7',resp:'',fp:27,st:'active',type:'Фасад',
+   tech:[{name:'Автокран 50т',dateFrom:'15.04.2026',dateTo:'30.06.2026',status:'w'},{name:'Автовышка 28м',dateFrom:'01.05.2026',dateTo:'30.06.2026',status:'w'},{name:'Эл. вышка ножн. 12м',dateFrom:'01.05.2026',dateTo:'31.07.2026',status:'w'}]},
+  {id:'o4',name:'ЖК Инди Тауэрс',addr:'ул. Куусинена вл.12, Москва',resp:'',fp:0,st:'active',type:'Остекление',
+   tech:[{name:'Автовышка 18м',dateFrom:'10.05.2026',dateTo:'31.07.2026',status:'w'},{name:'Эл. вышка коленч. 14м',dateFrom:'10.05.2026',dateTo:'31.07.2026',status:'r'}]},
+  {id:'o5',name:'Бескудниковский пр-д 2б',addr:'Бескудниковский пр-д 2б, Москва',resp:'',fp:0,st:'active',type:'Фасад',
+   tech:[{name:'Автовышка 28м',dateFrom:'01.05.2026',dateTo:'30.06.2026',status:'w'}]},
+  {id:'o6',name:'Сандтрекер, Зеленоград',addr:'Зеленоград, Авто пр. №4807,6',resp:'',fp:0,st:'active',type:'Фасад',
+   tech:[{name:'Автокран 25т',dateFrom:'20.04.2026',dateTo:'20.06.2026',status:'w'}]},
+  {id:'o7',name:'Москино, Стахановская 20',addr:'Стахановская 20, Москва',resp:'',fp:0,st:'plan',type:'Остекление',tech:[]},
+  {id:'o8',name:'ЖК Аквилон',addr:'Рязанский пр., 2/25, Москва',resp:'',fp:7,st:'active',type:'Фасад',
+   tech:[{name:'Автовышка 18м',dateFrom:'05.05.2026',dateTo:'05.08.2026',status:'w'},{name:'Вакуумный захват',dateFrom:'05.05.2026',dateTo:'05.08.2026',status:'w'}]},
+];
+let ROUTES = [
+  {id:'r1',grp:'manip',ico:'🏗️',tech:'Манипулятор 7т КМУ',drv:'d1',from:'База, Баковская 5',to:'Балашиха, Струве 7',cargo:'Алюм. профиль, 2 паллеты',time:'08:00–11:30',st:'go',resp:''},
+  {id:'r2',grp:'gazel',ico:'🚐',tech:'Газель',drv:'d3',from:'База, Баковская 5',to:'Сандтрекер, Зеленоград',cargo:'Расходники, инструмент',time:'07:30–09:30',st:'go',resp:''},
+  {id:'r3',grp:'long',ico:'🚛',tech:'Длинномер (аренда)',drv:'d2',from:'База, Баковская 5',to:'ЖК Аквилон',cargo:'Фасадные панели, профиль 12м',time:'06:00–09:00',st:'load',resp:''},
+];
+const RST = {go:{c:'pg-',l:'В пути'},load:{c:'pb-',l:'Погрузка'},wait:{c:'po-',l:'Ожидание'},done:{c:'pq-',l:'Завершён'}};
+let ORDERS = [];
+let JOURNAL = [];
+let ACTIVE_PROMOS = [];
+let ORDER_ID = 1001;
+
+const FP_DATA = [
+  {id:'balashiha',name:'Балашиха, ул. Струве 7',addr:'г. Балашиха',total:27,
+   lifts:[...Array.from({length:20},(_,i)=>({n:`ФП-${String(i+1).padStart(2,'0')}`,m:'ПМГ-1Б',s:'w'})),...Array.from({length:4},(_,i)=>({n:`ФП-${String(i+21).padStart(2,'0')}`,m:'ПМГ-1Б',s:'r'})),...Array.from({length:3},(_,i)=>({n:`ФП-${String(i+25).padStart(2,'0')}`,m:'ПМГ-2А',s:'i'}))]},
+  {id:'aquilon',name:'ЖК Аквилон',addr:'Рязанский пр., 2/25',total:7,
+   lifts:[...Array.from({length:5},(_,i)=>({n:`АП-${String(i+1).padStart(2,'0')}`,m:'ПМГ-1Б',s:'w'})),{n:'АП-06',m:'ПМГ-2А',s:'r'},{n:'АП-07',m:'ПМГ-1Б',s:'i'}]},
+];
+const LS = {w:{c:'pg-',l:'В работе'},r:{c:'po-',l:'Обслуживание'},i:{c:'pb-',l:'Простой'}};
+
+const WORK_TYPES = [
+  'Монтаж витражей','Монтаж фасадных панелей','Монтаж алюм. конструкций',
+  'Монтаж окон / ПВХ','Герметизация швов','Подъём конструкций',
+  'Доставка материалов','Перевозка оборудования','Перевозка контейнера',
+  'Вывоз мусора / демонтаж','Другое (свой вариант)'
+];
+
+const TECH = [
+  {id:'manip7',g:'manip',ico:'🏗️',own:true,name:'Манипулятор 7т',model:'КМУ — борт + кран',specs:[['Грузоподъём.','7 тонн'],['Вылет стрелы','до 11 м'],['Длина борта','6 м'],['Статус','Свой']],desc:'Рейсы от базы. Стеклопакеты, профиль, паллеты.',ex:['Груз и маршрут','Профиль → Балашиха']},
+  {id:'manip7f',g:'manip',ico:'🚛',own:true,name:'Манипулятор 7т',model:'Фура с КМУ',specs:[['Грузоподъём.','7 тонн'],['Вылет','до 10 м'],['Кузов','13,6 м'],['Статус','Свой']],desc:'Длинномерный кузов для профилей и витражей.',ex:['Габариты','12м × 0.5м']},
+  {id:'manip10',g:'manip',ico:'🏗️',own:false,name:'Манипулятор 10т',model:'КМУ борт',specs:[['Грузоподъём.','10 тонн'],['Вылет','до 14 м'],['Борт','6–8 м'],['Статус','Аренда']],desc:'Тяжёлые панели и витражные блоки.',ex:['Вес подъёма','4500 кг']},
+  {id:'crane25',g:'crane',ico:'🏚️',own:false,name:'Автокран 25т',model:'Городские объекты',specs:[['Грузоподъём.','25 тонн'],['Стрела','до 28 м'],['Статус','Аренда']],desc:'Ограниченное пространство.',ex:['Высота подъёма','18 м']},
+  {id:'crane50',g:'crane',ico:'🏚️',own:false,name:'Автокран 50т',model:'Жилые и коммерческие',specs:[['Грузоподъём.','50 тонн'],['Стрела','до 40 м'],['Вылет','до 35 м']],desc:'Металлоконструкции, витражные фасады.',ex:['Высота и вылет','25м / 12м']},
+  {id:'crane100',g:'crane',ico:'🏚️',own:false,name:'Автокран 100т',model:'Крупные объекты',specs:[['Грузоподъём.','100 тонн'],['Стрела','до 60 м'],['Вылет','до 50 м']],desc:'Сложные монтажные операции.',ex:['Вес и высота','18т / 40м']},
+  {id:'lift18',g:'lift',ico:'🔧',own:false,name:'Автовышка дизельная',model:'18 м',specs:[['Высота','18 м'],['Стрела','Коленчатая'],['Покрытие','Улица']],desc:'До 5 этажа. Монтаж витражей.',ex:['Высота зоны','4 этаж, 14м']},
+  {id:'lift28',g:'lift',ico:'🔧',own:false,name:'Автовышка дизельная',model:'28 м',specs:[['Высота','28 м'],['Стрела','Телескоп+колено'],['Покрытие','Твёрдое']],desc:'Основная вышка. Витражи и фасады.',ex:['Высота зоны','22м']},
+  {id:'lift45',g:'lift',ico:'🔧',own:false,name:'Автовышка дизельная',model:'45 м',specs:[['Высота','45 м'],['Стрела','Телескопическая'],['Допуск','Согласование']],desc:'Свыше 12 этажей. Требует ППР.',ex:['Здание и этаж','18 эт., 14–16']},
+  {id:'elbow14',g:'electro',ico:'⚡',own:false,name:'Эл. вышка коленчатая',model:'14 м',specs:[['Высота','14 м'],['Питание','Электро'],['Ширина','1,2 м']],desc:'Внутри помещений. Атриумы, ТЦ.',ex:['Высота потолков','10м']},
+  {id:'elbow20',g:'electro',ico:'⚡',own:false,name:'Эл. вышка коленчатая',model:'20 м',specs:[['Высота','20 м'],['Питание','Электро'],['Вылет','до 12 м']],desc:'Высокие атриумы, аэровокзалы.',ex:['Высота и вылет','16м / 8м']},
+  {id:'elsciss8',g:'electro',ico:'✂️',own:false,name:'Эл. вышка ножничная',model:'8 м',specs:[['Высота','8 м'],['Платформа','2,5×1,2 м'],['Питание','Электро']],desc:'До 3 этажа внутри. Ровный пол.',ex:['Высота и пол','6м, стяжка']},
+  {id:'elsciss12',g:'electro',ico:'✂️',own:false,name:'Эл. вышка ножничная',model:'12 м',specs:[['Высота','12 м'],['Платформа','3,5×1,5 м'],['Питание','Электро']],desc:'Бригада 2–3 чел. Поточный монтаж.',ex:['Высота и чел.','10м, 2 чел.']},
+  {id:'vacuum',g:'electro',ico:'🔵',own:false,name:'Вакуумный захват',model:'Стекло и панели',specs:[['Грузоподъём.','до 2000 кг'],['Чашки','4–8 шт'],['Тип','Электро/пневмо']],desc:'Стеклопакеты, панели, керамогранит.',ex:['Вес и размер','800кг, 2.4×1.8м']},
+  {id:'gazel',g:'cargo',ico:'🚐',own:true,name:'Газель / Ларгус',model:'Доставка',specs:[['Грузоподъём.','до 1,5 т'],['Объём','до 12 м³'],['Маршруты','Москва + обл.']],desc:'Расходники, инструмент, персонал.',ex:['Груз и маршрут','Расходники → объект']},
+  {id:'longb',g:'cargo',ico:'🚛',own:false,name:'Длинномер',model:'Профили и конструкции',specs:[['Грузоподъём.','до 20 т'],['Длина','13,6 м'],['Маршруты','Вся Россия']],desc:'Алюм. профиль, витражи, балки.',ex:['Груз и пункт','12м → Барнаул']},
+  {id:'truck',g:'cargo',ico:'🚛',own:false,name:'Фура',model:'Дальние рейсы',specs:[['Грузоподъём.','до 22 т'],['Объём','до 90 м³'],['Маршруты','Вся Россия']],desc:'Крупные поставки. Москва — Барнаул.',ex:['Пункт и вес','Барнаул, 14т']},
+];
+
+// ══════════════════════════════════════════
+//  FIREBASE CRUD
+// ══════════════════════════════════════════
+function fbSet(path, data) {
+  if (!fbReady || !db) return;
+  db.ref(path).set(data).catch(e => console.warn('FB set error:', e));
+}
+function fbUpdate(path, data) {
+  if (!fbReady || !db) return;
+  db.ref(path).update(data).catch(e => console.warn('FB update error:', e));
+}
+function fbRemove(path) {
+  if (!fbReady || !db) return;
+  db.ref(path).remove().catch(e => console.warn('FB remove error:', e));
+}
+function fbPush(path, data) {
+  if (!fbReady || !db) return;
+  return db.ref(path).push(data).catch(e => console.warn('FB push error:', e));
+}
+
+function loadAllData() {
+  if (!db) return;
+  db.ref('users').on('value', snap => {
+    const val = snap.val();
+    if (val) {
+      const arr = Object.entries(val).map(([id,d])=>({...d,id}));
+      // Сохраняем admin из локала
+      const adminLocal = USERS.find(u=>u.role==='admin');
+      USERS = [adminLocal, ...arr.filter(u=>u.role!=='admin')];
+    }
+    renderAll();
+  });
+  db.ref('orders').on('value', snap => {
+    const val = snap.val();
+    ORDERS = val ? Object.entries(val).map(([id,d])=>({...d,id})).sort((a,b)=>b.ts?.localeCompare(a.ts)||0) : [];
+    renderAll();
+  });
+  db.ref('drivers').on('value', snap => {
+    const val = snap.val();
+    if (val) DRIVERS = Object.entries(val).map(([id,d])=>({...d,id}));
+    renderAll();
+  });
+  db.ref('objects').on('value', snap => {
+    const val = snap.val();
+    if (val) OBJECTS = Object.entries(val).map(([id,d])=>({...d,id}));
+    renderAll();
+  });
+  db.ref('promos').on('value', snap => {
+    const val = snap.val();
+    ACTIVE_PROMOS = val ? Object.entries(val).map(([id,d])=>({...d,id})) : [];
+    renderPromos();
+  });
+  db.ref('journal').on('value', snap => {
+    const val = snap.val();
+    JOURNAL = val ? Object.entries(val).map(([id,d])=>({...d,id})).sort((a,b)=>b.ts?.localeCompare(a.ts)||0).slice(0,200) : [];
+    renderJournal();
+  });
+}
+
+function loadLocalData() {
+  try {
+    const s = localStorage.getItem('gms_data');
+    if (s) {
+      const d = JSON.parse(s);
+      if (d.orders) ORDERS = d.orders;
+      if (d.drivers) DRIVERS = d.drivers;
+      if (d.objects) OBJECTS = d.objects;
+      if (d.users) USERS = [USERS[0], ...d.users.filter(u=>u.role!=='admin')];
+      if (d.promos) ACTIVE_PROMOS = d.promos;
+      if (d.journal) JOURNAL = d.journal;
+      if (d.orderId) ORDER_ID = d.orderId;
+    }
+  } catch(e){}
+}
+function saveLocal() {
+  try {
+    localStorage.setItem('gms_data', JSON.stringify({
+      orders:ORDERS, drivers:DRIVERS, objects:OBJECTS,
+      users:USERS.filter(u=>u.role!=='admin'),
+      promos:ACTIVE_PROMOS, journal:JOURNAL, orderId:ORDER_ID
+    }));
+  } catch(e){}
+}
+
+// ══════════════════════════════════════════
+//  ЖУРНАЛ ДЕЙСТВИЙ
+// ══════════════════════════════════════════
+function addJournal(ico, text) {
+  const entry = {
+    ico, text,
+    who: CU?.name || '—',
+    ts: new Date().toLocaleString('ru-RU')
+  };
+  JOURNAL.unshift(entry);
+  if (JOURNAL.length > 200) JOURNAL.pop();
+  if (fbReady && db) fbPush('journal', entry);
+  saveLocal();
+}
+function renderJournal() {
+  const mEl = document.getElementById('m-journal-list');
+  const dEl = document.getElementById('d-journal-list');
+  const html = JOURNAL.length ? JOURNAL.map(j=>`
+    <div class="jrnl-item">
+      <div class="jrnl-ico">${j.ico}</div>
+      <div style="flex:1">
+        <div class="jrnl-text">${j.text}</div>
+        <div class="jrnl-who">👤 ${j.who}</div>
+      </div>
+      <div class="jrnl-time">${j.ts}</div>
+    </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--mu)">Журнал пуст</div>';
+  if (mEl) mEl.innerHTML = html;
+  if (dEl) dEl.innerHTML = html;
+}
+
+// ══════════════════════════════════════════
+//  EMAIL
+// ══════════════════════════════════════════
+function initEmail() {
+  try { if(EJS_KEY && !EJS_KEY.includes('ВСТАВЬТЕ')) emailjs.init({publicKey:EJS_KEY}); } catch(e){}
+}
+async function sendEmail(order) {
+  if (!EJS_SERVICE || EJS_SERVICE.includes('ВСТАВЬТЕ')) return;
+  const isDelivery = order.wtype !== 'site';
+  const subject = `${order.userName} — ${order.tech} — ${order.date} — ${order.obj || order.to}`;
+  const body = [
+    `Заявка: ${order.id}`,
+    `Заявитель: ${order.userName}`,
+    `Дата: ${order.date}`,
+    `Техника: ${order.tech}`,
+    `Тип работы: ${order.workType || order.wtype}`,
+    `Время: ${order.timeSlot || 'В любое время'}`,
+    order.timeComment ? `Комментарий по времени: ${order.timeComment}` : '',
+    isDelivery ? `Откуда: ${order.from}` : `Объект: ${order.obj}`,
+    isDelivery ? `Куда: ${order.to}` : '',
+    isDelivery && order.contactFrom ? `Контакт отправителя: ${order.contactFrom}` : '',
+    isDelivery && order.contactTo ? `Контакт получателя: ${order.contactTo}` : '',
+    `Статья затрат: ${order.cost}`,
+    `Срочность: ${order.urgent}`,
+    `Описание: ${order.desc}`,
+  ].filter(Boolean).join('\n');
+  try {
+    await emailjs.send(EJS_SERVICE, EJS_TEMPLATE, {
+      to_email: REPORT_EMAIL,
+      subject,
+      body,
+      from_name: order.userName
+    });
+  } catch(e) { console.warn('Email error:', e); }
+}
+
+// ══════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════
+function toast(msg, dur=2800) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), dur);
+}
+function pill(cls, txt) { return `<span class="pill ${cls}"><span class="dt"></span>${txt}</span>`; }
+function stPill(st) {
+  const m = {'Новая':'po-','Принята':'pb-','В работе':'po-','Водитель едет':'pb-','Выполнена':'pg-','Отказ':'pr-','Подтверждена':'pg-'};
+  return pill(m[st]||'pq-', st);
+}
+function togglePass(id, btn) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  const shown = inp.type === 'text';
+  inp.type = shown ? 'password' : 'text';
+  btn.textContent = shown ? '👁' : '🙈';
+}
+function fmtDate(d) { return d.toISOString().split('T')[0]; }
+function isMobileDevice() {
+  return window.innerWidth < 900 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+}
+
+// ══════════════════════════════════════════
+//  РЕГЛАМЕНТ ДАТ
+// ══════════════════════════════════════════
+let promoApplied = false;
+function minDelivDate(force=false) {
+  if (force || promoApplied) return new Date();
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  const after13 = h > 13 || (h === 13 && m > 0);
+  const dow = now.getDay();
+  let d = new Date(now);
+  if (dow === 5 && after13) d.setDate(d.getDate()+4);
+  else if (dow === 6) d.setDate(d.getDate()+3);
+  else if (dow === 0) d.setDate(d.getDate()+2);
+  else if (after13) d.setDate(d.getDate()+2);
+  else d.setDate(d.getDate()+1);
+  return d;
+}
+function minDateHint() {
+  return minDelivDate(promoApplied).toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+}
+
+// ══════════════════════════════════════════
+//  ПРОМОКОДЫ
+// ══════════════════════════════════════════
+function generatePromo() {
+  const code = Math.random().toString(36).substring(2,8).toUpperCase();
+  const exp = new Date(); exp.setHours(exp.getHours()+24);
+  const p = {code, exp:exp.toISOString(), used:false};
+  ACTIVE_PROMOS.push(p);
+  if (fbReady && db) fbPush('promos', p);
+  saveLocal();
+  const el = document.getElementById('m-promo-code');
+  if (el) el.textContent = code;
+  const gen = document.getElementById('m-promo-generated');
+  if (gen) gen.style.display = 'block';
+  renderPromos();
+  addJournal('🔑', `Создан промокод: ${code}`);
+  toast('🔑 Промокод: ' + code);
+}
+function renderPromos() {
+  const el = document.getElementById('m-promo-list');
+  if (!el) return;
+  el.innerHTML = ACTIVE_PROMOS.length ? ACTIVE_PROMOS.map(p=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:10px;padding:11px 13px;margin-bottom:7px;box-shadow:0 1px 3px rgba(0,0,0,.05)">
+      <span style="font-size:18px;font-weight:900;letter-spacing:3px">${p.code}</span>
+      ${pill(p.used?'pq-':'pg-', p.used?'Использован':'Активен')}
+    </div>`).join('') : '<div style="color:var(--mu);font-size:13px">Нет промокодов</div>';
+}
+function applyPromo() {
+  const code = (document.getElementById('promo-field-v')?.value||'').trim().toUpperCase();
+  const p = ACTIVE_PROMOS.find(x=>x.code===code&&!x.used&&new Date()<new Date(x.exp));
+  if (p) {
+    p.used = true; promoApplied = true;
+    if (fbReady && db) db.ref('promos').orderByChild('code').equalTo(code).once('value', snap=>{
+      snap.forEach(child=>child.ref.update({used:true}));
+    });
+    saveLocal();
+    document.getElementById('promo-ok-msg').style.display = 'block';
+    const fdate = document.getElementById('f-date');
+    if (fdate) fdate.min = fmtDate(new Date());
+    toast('✅ Промокод принят');
+  } else { toast('❌ Промокод недействителен'); }
+}
+
+// ══════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════
+let CU = null;
+function doLogin() {
+  const login = (document.getElementById('l-login').value||'').trim();
+  const pass  = document.getElementById('l-pass').value||'';
+  const u = USERS.find(x=>x.login===login&&x.pass===pass);
+  if (!u) { document.getElementById('l-err').textContent='❌ Неверный логин или пароль'; return; }
+  document.getElementById('l-err').textContent = '';
+  CU = u;
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  addJournal('🔐', `Вход в систему`);
+  if (isMobileDevice()) initMobile(); else initDesktop();
+}
+function logout() {
+  addJournal('🚪', `Выход из системы`);
+  CU = null; promoApplied = false;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('dWrap').style.display = 'none';
+  document.getElementById('mWrap').style.display = 'none';
+  document.getElementById('l-login').value='';
+  document.getElementById('l-pass').value='';
+}
+
+// ══════════════════════════════════════════
+//  ВИДИМОСТЬ ЗАЯВОК
+// ══════════════════════════════════════════
+function visibleOrders() {
+  if (!CU) return [];
+  if (CU.role === 'admin') return ORDERS;
+  if (CU.role === 'manager') {
+    // Руководитель видит свои + заявки подчинённых своего объекта
+    const teamIds = USERS.filter(u=>u.linkedObj===CU.linkedObj&&u.role==='user').map(u=>u.id);
+    return ORDERS.filter(o=>o.userId===CU.id||teamIds.includes(o.userId));
+  }
+  return ORDERS.filter(o=>o.userId===CU.id);
+}
+
+// ══════════════════════════════════════════
+//  MOBILE INIT & NAV
+// ══════════════════════════════════════════
+const M_PAGES = ['home','routes','facades','orders','more','catalog','onsite','stats','profile','my-team','drivers','obj-admin','users','promos','journal'];
+const M_BN = ['home','routes','facades','orders','more'];
+const M_TITLES = {home:'GMS Group',routes:'Рейсы',facades:'Подъёмники',orders:'Заявки',more:'Меню',catalog:'Техника',onsite:'На объектах',stats:'Статистика',profile:'Профиль','my-team':'Мои сотрудники',drivers:'Водители','obj-admin':'Объекты',users:'Пользователи',promos:'Промокоды',journal:'Журнал'};
+function initMobile() {
+  document.getElementById('mWrap').style.display = 'flex';
+  setMobileUser();
+  if (CU.role==='admin') document.querySelectorAll('.admin-el').forEach(e=>e.style.display='block');
+  if (CU.role==='manager'||CU.role==='admin') document.querySelectorAll('.manager-el').forEach(e=>e.style.display='block');
+  renderAll();
+}
+function setMobileUser() {
+  const av = document.getElementById('m-hdr-av');
+  av.style.background = CU.color; av.textContent = CU.ini;
+  document.getElementById('m-hdr-avname').textContent = CU.name.split(' ')[0];
+  document.getElementById('m-welcome').textContent = CU.name.split(' ')[0];
+  document.getElementById('m-date').textContent = '📅 '+new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+  const mav = document.getElementById('m-more-av');
+  mav.style.background = CU.color; mav.textContent = CU.ini;
+  document.getElementById('m-more-name').textContent = CU.name;
+  document.getElementById('m-more-role').textContent = CU.obj;
+}
+function mPage(id) {
+  M_PAGES.forEach(p=>{
+    const el=document.getElementById('m-'+p);
+    if(el) el.classList.toggle('act',p===id);
+    const bn=document.getElementById('bn-'+p);
+    if(bn) bn.classList.toggle('act',p===id);
+  });
+  document.getElementById('m-title').textContent = M_TITLES[id]||'GMS';
+  const noFab = ['more','stats','drivers','users','promos','journal','obj-admin','my-team'];
+  document.getElementById('fab').style.display = noFab.includes(id)?'none':'flex';
+  document.getElementById('mScroll').scrollTop = 0;
+  if (id==='journal') renderJournal();
+  if (id==='profile') renderProfile();
+  if (id==='my-team') renderMyTeam();
+}
+
+// ══════════════════════════════════════════
+//  RENDER ALL
+// ══════════════════════════════════════════
+function renderAll() {
+  renderMRoutes('all');
+  renderMFP();
+  renderMOrders('all');
+  renderMHomeRoutes();
+  renderMHomeOrders();
+  renderMCatalog('all');
+  renderMOnsite();
+  renderMDrivers('all');
+  renderMObjects();
+  renderMUsers();
+  renderPromos();
+  updateBadges();
+  if (!isMobileDevice() && document.getElementById('dWrap').style.display!=='none') {
+    renderDPage(currentDPage);
+  }
+}
+function updateBadges() {
+  const orders = visibleOrders();
+  const active = orders.filter(o=>o.st!=='Выполнена'&&o.st!=='Отказ');
+  const badge = document.getElementById('m-orders-badge');
+  if (badge) { badge.textContent=active.length||''; badge.style.display=active.length?'flex':'none'; }
+  document.getElementById('mk-routes').textContent = ROUTES.filter(r=>r.st!=='done').length;
+  document.getElementById('mk-orders').textContent = orders.length;
+  document.getElementById('mk-objs').textContent = OBJECTS.filter(o=>o.st==='active').length;
+  const dBadge = document.getElementById('d-badge-orders');
+  if (dBadge) dBadge.textContent = active.length||'';
+}
+
+// ══════════════════════════════════════════
+//  ROUTES
+// ══════════════════════════════════════════
+function routeCard(r) {
+  const d = DRIVERS.find(x=>x.id===r.drv)||{color:'#888',ini:'?',name:'—',phone:''};
+  const s = RST[r.st]||{c:'pq-',l:'—'};
+  return `<div class="rc">
+    <div class="rc-hdr"><div class="rc-tech">${r.ico} ${r.tech}</div>${pill(s.c,s.l)}</div>
+    <div class="rc-path"><span class="rc-loc">📍 ${r.from}</span><span class="rc-arr">→</span><span class="rc-loc">🏗 ${r.to}</span></div>
+    <div class="rc-meta"><span class="rc-m">📦 ${r.cargo}</span><span class="rc-m">🕐 ${r.time}</span></div>
+    <div class="rc-foot">
+      <button class="oc-btn b" onclick="openPhone('${d.id}','${d.name}','${d.phone}','${d.role||''}','${d.color}','${d.ini}')">📞 ${d.name.split(' ')[0]}</button>
+      ${CU?.role==='admin'?`<select style="font-size:11px;border:1px solid var(--br);border-radius:6px;padding:4px 8px;background:var(--gr)" onchange="changeRouteSt('${r.id}',this.value)">
+        <option value="go" ${r.st==='go'?'selected':''}>В пути</option>
+        <option value="load" ${r.st==='load'?'selected':''}>Погрузка</option>
+        <option value="wait" ${r.st==='wait'?'selected':''}>Ожидание</option>
+        <option value="done" ${r.st==='done'?'selected':''}>Завершён</option>
+      </select>`:''}
+    </div>
+  </div>`;
+}
+function renderMRoutes(f) {
+  const list = f==='all'?ROUTES:ROUTES.filter(r=>r.grp===f);
+  document.getElementById('m-routes-list').innerHTML = list.length ? list.map(routeCard).join('') : '<div style="padding:20px;text-align:center;color:var(--mu)">Рейсов нет</div>';
+}
+function mFilterRoutes(f,el) {
+  document.querySelectorAll('#m-rt-tabs .cat-chip').forEach(c=>c.classList.remove('act'));
+  el.classList.add('act'); renderMRoutes(f);
+}
+function renderMHomeRoutes() {
+  document.getElementById('m-home-routes').innerHTML = ROUTES.filter(r=>r.st!=='done').slice(0,3).map(r=>{
+    const s = RST[r.st]||{c:'pq-',l:'—'};
+    return `<div class="m-mini"><div class="mm-top"><div class="mm-title">${r.ico} ${r.tech.split('(')[0].trim()}</div>${pill(s.c,s.l)}</div><div class="mm-sub">${r.from} → ${r.to}</div></div>`;
+  }).join('')||'<div style="color:var(--mu);font-size:13px">Активных рейсов нет</div>';
+}
+function changeRouteSt(id,st) {
+  const r=ROUTES.find(x=>x.id===id); if(r){r.st=st; renderAll();}
+}
+
+// ══════════════════════════════════════════
+//  FP
+// ══════════════════════════════════════════
+function renderMFP() {
+  document.getElementById('m-fp-list').innerHTML = FP_DATA.map(obj=>{
+    const c={w:obj.lifts.filter(l=>l.s==='w').length,r:obj.lifts.filter(l=>l.s==='r').length,i:obj.lifts.filter(l=>l.s==='i').length};
+    return `<div class="fp-obj" id="fpc-${obj.id}">
+      <div class="fp-hd" id="fph-${obj.id}" onclick="togFP('${obj.id}')">
+        <div><h4>🔴 ${obj.name}</h4><p>📍 ${obj.addr}</p></div>
+        <div class="fp-hr">
+          ${pill('pg-',c.w+' работа')}${c.r?pill('po-',c.r+' обсл.'):''}
+          <div class="fp-tot">${obj.total}</div>
+          <div class="fp-arr" id="arr-${obj.id}">▼</div>
+        </div>
+      </div>
+      <div class="fp-body" id="fpb-${obj.id}">
+        ${CU?.role==='admin'?`<button onclick="editFPCount('${obj.id}')" style="background:var(--bb);color:var(--bl);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;margin-bottom:10px;width:100%">✏️ Изменить кол-во ФП</button>`:''}
+        <div class="lifts-grid">${obj.lifts.map(l=>`<div class="lc"><div class="lc-n">${l.n}</div><div class="lc-nm">Фас. подъёмник</div><div class="lc-m">${l.m}</div>${pill(LS[l.s].c,LS[l.s].l)}</div>`).join('')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function togFP(id) {
+  const b=document.getElementById('fpb-'+id),a=document.getElementById('arr-'+id),h=document.getElementById('fph-'+id);
+  const op=b.classList.toggle('op'); a.classList.toggle('op',op); h.classList.toggle('op',op);
+  if(op) setTimeout(()=>document.getElementById('fpc-'+id).scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+function mOpenFP(id) { if(!document.getElementById('fpb-'+id).classList.contains('op')) togFP(id); toast('📍 '+FP_DATA.find(f=>f.id===id)?.name); }
+function editFPCount(id) {
+  if(CU?.role!=='admin'){toast('❌ Только администратор');return;}
+  const fp=FP_DATA.find(f=>f.id===id);
+  const n=prompt(`ФП на "${fp.name}":`,fp.total);
+  if(n!==null&&!isNaN(n)){fp.total=parseInt(n);addJournal('🔴',`Изменено кол-во ФП: ${fp.name} → ${n}`);renderMFP();toast('✅ ФП обновлено');}
+}
+
+// ══════════════════════════════════════════
+//  ORDERS
+// ══════════════════════════════════════════
+const ORDER_STATUSES = ['Принята','В работе','Водитель едет','Выполнена','Отказ'];
+function orderCard(o) {
+  const isAdmin = CU?.role==='admin';
+  const canConfirm = o.st==='Водитель едет';
+  const isDelivery = o.wtype!=='site';
+  return `<div class="oc">
+    <div class="oc-id">${o.id} · ${o.ts||o.date} · ${o.userName}</div>
+    <div class="oc-obj">${o.obj||''}${isDelivery?`${o.from} → ${o.to}`:''}</div>
+    <div class="oc-tech">${o.tech}${o.workType?` · ${o.workType}`:''}</div>
+    ${o.timeSlot&&o.timeSlot!=='anytime'?`<div class="oc-comment">🕐 ${o.timeSlot==='morning'?'Первая половина дня':'Вторая половина дня'}${o.timeComment?' — '+o.timeComment:''}</div>`:''}
+    ${isDelivery&&(o.contactFrom||o.contactTo)?`<div class="oc-comment">📞 Отправитель: ${o.contactFrom||'—'} / Получатель: ${o.contactTo||'—'}</div>`:''}
+    ${o.comment?`<div class="oc-comment">💬 ${o.comment}</div>`:''}
+    <div class="oc-foot">${stPill(o.st)}<span class="oc-meta">📊 ${o.cost||'—'}</span></div>
+    <div class="oc-acts">
+      ${isAdmin?`<button class="oc-btn b" onclick="openStatus('${o.id}')">✏️ Статус</button>`:''}
+      ${isAdmin&&o.st==='Новая'?`<button class="oc-btn g" onclick="quickAccept('${o.id}')">✅ Принять</button><button class="oc-btn r" onclick="quickReject('${o.id}')">❌ Отказ</button>`:''}
+      ${canConfirm?`<button class="oc-btn g" onclick="confirmArrival('${o.id}')">✅ Техника прибыла</button>`:''}
+    </div>
+  </div>`;
+}
+function renderMOrders(filter) {
+  let list = visibleOrders();
+  if(filter==='new') list=list.filter(o=>o.st==='Новая');
+  else if(filter==='active') list=list.filter(o=>['Принята','В работе','Водитель едет'].includes(o.st));
+  else if(filter==='done') list=list.filter(o=>['Выполнена','Отказ'].includes(o.st));
+  document.getElementById('m-orders-list').innerHTML = list.length ? list.map(orderCard).join('') : '<div style="padding:30px;text-align:center;color:var(--mu)">Заявок нет</div>';
+}
+function mFilterOrders(f,el) {
+  document.querySelectorAll('#m-ord-tabs .cat-chip').forEach(c=>c.classList.remove('act'));
+  el.classList.add('act'); renderMOrders(f);
+}
+function renderMHomeOrders() {
+  document.getElementById('m-home-orders').innerHTML = visibleOrders().slice(0,3).map(o=>`
+    <div class="m-mini"><div class="mm-top"><div class="mm-title">${o.tech}</div>${stPill(o.st)}</div>
+    <div class="mm-sub">${o.obj||o.from+' → '+o.to} · ${o.date}</div></div>`
+  ).join('')||'<div style="color:var(--mu);font-size:13px">Нет заявок</div>';
+}
+function quickAccept(id) {
+  const o=ORDERS.find(x=>x.id===id); if(o){o.st='Принята';saveOrder(o);addJournal('✅',`Заявка ${id} принята`);renderAll();toast('✅ Заявка '+id+' принята');}
+}
+function quickReject(id) {
+  const comment=prompt('Причина отказа:');
+  const o=ORDERS.find(x=>x.id===id);
+  if(o){o.st='Отказ';if(comment)o.comment=comment;saveOrder(o);addJournal('❌',`Заявка ${id} отклонена: ${comment||''}`);renderAll();toast('❌ Заявка '+id+' отклонена');}
+}
+function confirmArrival(id) {
+  const o=ORDERS.find(x=>x.id===id);
+  if(o){o.st='Выполнена';o.confirmedBy=CU.name;o.confirmedAt=new Date().toLocaleString('ru-RU');saveOrder(o);addJournal('✔️',`Заявка ${id}: техника прибыла. Подтвердил: ${CU.name}`);renderAll();toast('✅ Приезд подтверждён');}
+}
+function saveOrder(o) {
+  if(fbReady&&db) fbUpdate('orders/'+o.id, o);
+  saveLocal();
+}
+
+// ══════════════════════════════════════════
+//  STATUS MODAL
+// ══════════════════════════════════════════
+let statusTargetId = null, statusSelVal = '';
+function openStatus(id) {
+  if(CU?.role!=='admin'){toast('❌ Только администратор');return;}
+  statusTargetId=id;
+  const o=ORDERS.find(x=>x.id===id);
+  document.getElementById('status-info').innerHTML=o?`<b>${o.id}</b> · ${o.tech}<br><span style="font-size:12px;color:var(--mu)">${o.obj||o.from+' → '+o.to}</span><br><b>Текущий статус:</b> ${o.st}`:'';
+  document.getElementById('status-comment').value=o?.comment||'';
+  document.querySelectorAll('.st-opt').forEach(x=>x.classList.remove('sel'));
+  statusSelVal=o?.st||'';
+  openModal('statusOv');
+}
+function selStatus(el,st) {
+  document.querySelectorAll('.st-opt').forEach(x=>x.classList.remove('sel'));
+  el.classList.add('sel'); statusSelVal=st;
+}
+function saveStatus() {
+  if(!statusSelVal){toast('Выберите статус');return;}
+  const o=ORDERS.find(x=>x.id===statusTargetId);
+  if(o){o.st=statusSelVal;o.comment=document.getElementById('status-comment').value||o.comment;o.changedBy=CU.name;saveOrder(o);addJournal('🔄',`Статус заявки ${o.id}: ${statusSelVal}${o.comment?' — '+o.comment:''}`);}
+  closeModal('statusOv'); renderAll(); toast('✅ Статус обновлён');
+}
+
+// ══════════════════════════════════════════
+//  ONSITE
+// ══════════════════════════════════════════
+function renderMOnsite() {
+  const el=document.getElementById('m-onsite-list');if(!el)return;
+  el.innerHTML=OBJECTS.filter(o=>o.st==='active'&&o.tech&&o.tech.length).map(o=>`
+    <div class="rc" style="display:block;margin-bottom:9px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px">🏗 ${o.name}</div>
+      <div style="font-size:12px;color:var(--mu);margin-bottom:8px">📍 ${o.addr}</div>
+      ${o.tech.map(t=>`<div class="ot-item">
+        <div class="ot-left">
+          <div class="ot-name">${t.name}</div>
+          <div class="ot-dates">📅 ${t.dateFrom} — ${t.dateTo}</div>
+        </div>
+        <div class="ot-right">
+          ${pill(t.status==='w'?'pg-':'po-',t.status==='w'?'В работе':'Ожидание')}
+          ${CU?.role==='admin'?`<button class="oc-btn" onclick="openOnsiteEdit('${o.id}')">✏️</button>`:''}
+        </div>
+      </div>`).join('')}
+    </div>`).join('')||'<div style="color:var(--mu);font-size:13px">Нет активной техники на объектах</div>';
+}
+
+// ══════════════════════════════════════════
+//  ONSITE EDIT (admin)
+// ══════════════════════════════════════════
+let onsiteEditObjId = null;
+function openOnsiteEdit(objId) {
+  if(CU?.role!=='admin'){toast('❌ Только администратор');return;}
+  onsiteEditObjId=objId;
+  const o=OBJECTS.find(x=>x.id===objId);
+  document.getElementById('onsite-edit-h').textContent='Техника: '+o.name;
+  renderOnsiteEditItems(o.tech||[]);
+  openModal('onsiteEditOv');
+}
+function renderOnsiteEditItems(items) {
+  document.getElementById('onsite-edit-items').innerHTML=items.map((t,i)=>`
+    <div style="background:var(--gr);border-radius:10px;padding:12px;margin-bottom:9px">
+      <div class="fg-grid2">
+        <div class="fg fg-full"><label>Техника</label><input type="text" class="onsite-tech-name" value="${t.name}" placeholder="Автовышка 28м"/></div>
+        <div class="fg"><label>С какого числа</label><input type="date" class="onsite-date-from" value="${toInputDate(t.dateFrom)}"/></div>
+        <div class="fg"><label>По какое число</label><input type="date" class="onsite-date-to" value="${toInputDate(t.dateTo)}"/></div>
+        <div class="fg"><label>Статус</label>
+          <select class="onsite-status"><option value="w" ${t.status==='w'?'selected':''}>В работе</option><option value="r" ${t.status==='r'?'selected':''}>Ожидание</option></select>
+        </div>
+        <div class="fg" style="align-self:flex-end">
+          <button type="button" class="ab ab-r" onclick="removeOnsiteItem(this)">🗑 Удалить</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function toInputDate(d) {
+  if(!d)return '';
+  const parts=d.split('.');
+  if(parts.length===3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  return d;
+}
+function fromInputDate(d) {
+  if(!d)return '';
+  const parts=d.split('-');
+  if(parts.length===3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+  return d;
+}
+function addOnsiteItem() {
+  const cont=document.getElementById('onsite-edit-items');
+  const div=document.createElement('div');
+  div.style.cssText='background:var(--gr);border-radius:10px;padding:12px;margin-bottom:9px';
+  div.innerHTML=`<div class="fg-grid2">
+    <div class="fg fg-full"><label>Техника</label><input type="text" class="onsite-tech-name" placeholder="Автовышка 28м"/></div>
+    <div class="fg"><label>С какого числа</label><input type="date" class="onsite-date-from"/></div>
+    <div class="fg"><label>По какое число</label><input type="date" class="onsite-date-to"/></div>
+    <div class="fg"><label>Статус</label><select class="onsite-status"><option value="w">В работе</option><option value="r">Ожидание</option></select></div>
+    <div class="fg" style="align-self:flex-end"><button type="button" class="ab ab-r" onclick="removeOnsiteItem(this)">🗑 Удалить</button></div>
+  </div>`;
+  cont.appendChild(div);
+}
+function removeOnsiteItem(btn){btn.closest('div[style*="border-radius"]').remove();}
+function saveOnsiteEdit() {
+  const names=[...document.querySelectorAll('.onsite-tech-name')].map(i=>i.value.trim());
+  const froms=[...document.querySelectorAll('.onsite-date-from')].map(i=>fromInputDate(i.value));
+  const tos=[...document.querySelectorAll('.onsite-date-to')].map(i=>fromInputDate(i.value));
+  const stats=[...document.querySelectorAll('.onsite-status')].map(i=>i.value);
+  const tech=names.map((n,i)=>({name:n,dateFrom:froms[i],dateTo:tos[i],status:stats[i]})).filter(t=>t.name);
+  const o=OBJECTS.find(x=>x.id===onsiteEditObjId);
+  if(o){o.tech=tech;if(fbReady&&db)fbUpdate('objects/'+o.id,o);saveLocal();addJournal('🏗',`Обновлена техника на объекте: ${o.name}`);renderAll();closeModal('onsiteEditOv');toast('✅ Сохранено');}
+}
+
+// ══════════════════════════════════════════
+//  CATALOG
+// ══════════════════════════════════════════
+function renderMCatalog(f) {
+  const list=f==='all'?TECH:TECH.filter(t=>t.g===f);
+  document.getElementById('m-tech-list').innerHTML=list.map(t=>`
+    <div style="background:#fff;border-radius:13px;margin:0 14px 9px;overflow:hidden;display:flex;border:2px solid transparent;box-shadow:0 1px 4px rgba(0,0,0,.06)" onclick="openOrder('${t.id}')">
+      <div style="width:68px;background:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0;border-right:1px solid #f0f0f0;padding:10px 0">
+        <div style="font-size:28px">${t.ico}</div>
+        ${pill(t.own?'pg-':'pq-',t.own?'Свой':'Аренда')}
+      </div>
+      <div style="flex:1;padding:10px 12px">
+        <div style="font-size:13px;font-weight:700">${t.name}</div>
+        <div style="font-size:11px;color:var(--r);font-weight:600;margin-bottom:6px">${t.model}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:7px">${t.specs.map(s=>`<div style="font-size:10px;color:var(--mu)"><b style="color:var(--tx)">${s[1]}</b> ${s[0]}</div>`).join('')}</div>
+        <div style="font-size:11px;color:#888;border-top:1px solid #f0f0f0;padding-top:7px;margin-bottom:8px">${t.desc}</div>
+        <button class="oc-btn b" style="width:100%;padding:8px;font-size:12px;font-weight:700" onclick="event.stopPropagation();openOrder('${t.id}')">Оформить заявку →</button>
+      </div>
+    </div>`).join('');
+}
+function mShowCat(g,el) {
+  document.querySelectorAll('#m-cat-tabs .cat-chip').forEach(c=>c.classList.remove('act'));
+  el.classList.add('act'); renderMCatalog(g);
+}
+
+// ══════════════════════════════════════════
+//  DRIVERS
+// ══════════════════════════════════════════
+function renderMDrivers(f) {
+  const el=document.getElementById('m-drv-list');if(!el)return;
+  const list=f==='all'?DRIVERS:DRIVERS.filter(d=>d.type===f);
+  const stL={go:'В рейсе',load:'Погрузка',wait:'Ожидание',done:'Завершил',free:'Свободен'};
+  const stC={go:'po-',load:'pb-',wait:'pq-',done:'pg-',free:'pg-'};
+  el.innerHTML=list.length?list.map(d=>`
+    <div class="drv-card ${d.type==='hired'?'hired':''}">
+      <div class="drv-top">
+        <div class="drv-av" style="background:${d.color}">${d.ini}</div>
+        <div style="flex:1">
+          <div class="drv-name">${d.name}</div>
+          <div class="drv-role">${d.role}</div>
+          <span class="drv-type-tag ${d.type==='own'?'dt-own':'dt-hired'}">${d.type==='own'?'✅ Постоянный':'🔄 Наёмный'}</span>
+          ${d.company?`<span style="font-size:10px;color:var(--mu);display:block">${d.company}</span>`:''}
+        </div>
+        ${pill(stC[d.st]||'pq-',stL[d.st]||'—')}
+      </div>
+      <div class="drv-btns">
+        <button class="oc-btn b" style="flex:2" onclick="openPhone('${d.id}','${d.name}','${d.phone}','${d.role}','${d.color}','${d.ini}')">📞 ${d.phone}</button>
+        ${CU?.role==='admin'?`<button class="oc-btn" onclick="openEditDriver('${d.id}')">✏️</button><button class="oc-btn r" onclick="deleteDriver('${d.id}')">🗑</button>`:''}
+      </div>
+    </div>`).join(''):'<div style="padding:20px;text-align:center;color:var(--mu)">Нет водителей</div>';
+}
+function mFilterDrv(f,el) {
+  document.querySelectorAll('#m-drv-tabs .cat-chip').forEach(c=>c.classList.remove('act'));
+  el.classList.add('act'); renderMDrivers(f);
+}
+function selDrvType(el,t) {
+  document.querySelectorAll('#addDrvOv .tog-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel'); document.getElementById('drv-type').value=t;
+  document.getElementById('drv-company-fg').style.display=t==='hired'?'flex':'none';
+}
+function openEditDriver(id) {
+  const d=DRIVERS.find(x=>x.id===id); if(!d)return;
+  document.getElementById('drv-modal-h').textContent='Редактировать водителя';
+  document.getElementById('drv-name').value=d.name;
+  document.getElementById('drv-phone').value=d.phone;
+  document.getElementById('drv-role').value=d.role||'';
+  document.getElementById('drv-company').value=d.company||'';
+  document.getElementById('drv-type').value=d.type;
+  document.getElementById('drv-company-fg').style.display=d.type==='hired'?'flex':'none';
+  document.getElementById('drv-edit-id').value=id;
+  document.querySelectorAll('#addDrvOv .tog-btn').forEach(b=>{b.classList.toggle('sel',b.onclick?.toString().includes("'"+d.type+"'"));});
+  openModal('addDrvOv');
+}
+function saveDriver() {
+  const name=(document.getElementById('drv-name').value||'').trim();
+  const phone=(document.getElementById('drv-phone').value||'').trim();
+  const role=(document.getElementById('drv-role').value||'').trim();
+  const type=document.getElementById('drv-type').value;
+  const company=(document.getElementById('drv-company').value||'').trim();
+  const editId=document.getElementById('drv-edit-id').value;
+  if(!name||!phone){toast('⚠️ Укажите имя и телефон');return;}
+  if(editId){
+    const d=DRIVERS.find(x=>x.id===editId);
+    if(d){Object.assign(d,{name,phone,role:role||'Водитель',type,company});if(fbReady&&db)fbUpdate('drivers/'+editId,d);addJournal('✏️',`Изменён водитель: ${name}`);}
+  } else {
+    const color=nextColor(),ini=initials(name);
+    const d={id:'d'+Date.now(),name,phone,role:role||'Водитель',type,company,color,ini,st:'free'};
+    DRIVERS.push(d); if(fbReady&&db)fbUpdate('drivers/'+d.id,d); addJournal('➕',`Добавлен водитель: ${name} (${type==='own'?'Постоянный':'Наёмный'})`);
+  }
+  saveLocal(); closeModal('addDrvOv');
+  ['drv-name','drv-phone','drv-role','drv-company'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('drv-edit-id').value='';
+  renderAll(); toast('✅ Сохранено');
+}
+function deleteDriver(id) {
+  if(!confirm('Удалить водителя?'))return;
+  const d=DRIVERS.find(x=>x.id===id);
+  DRIVERS.splice(DRIVERS.findIndex(x=>x.id===id),1);
+  if(fbReady&&db)fbRemove('drivers/'+id);
+  saveLocal(); addJournal('🗑',`Удалён водитель: ${d?.name}`); renderAll(); toast('🗑 Удалён');
+}
+
+// ══════════════════════════════════════════
+//  OBJECTS ADMIN
+// ══════════════════════════════════════════
+let objEditId=null, objTechCounter=0;
+function renderMObjects() {
+  const el=document.getElementById('m-obj-list');if(!el)return;
+  el.innerHTML=OBJECTS.map(o=>`
+    <div class="obj-card">
+      <div class="obj-name">📍 ${o.name}</div>
+      <div class="obj-addr">${o.addr}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        ${pill(o.st==='active'?'pg-':o.st==='done'?'pq-':'pb-',o.st==='active'?'Активный':o.st==='done'?'Завершён':'Плановый')}
+        ${o.fp>0?pill('pr-','🔴 '+o.fp+' ФП'):''}
+        ${o.type?`<span style="font-size:11px;color:var(--mu)">${o.type}</span>`:''}
+      </div>
+      ${CU?.role==='admin'?`<div style="display:flex;gap:6px;margin-top:6px">
+        <button class="oc-btn b" onclick="openEditObject('${o.id}')">✏️ Редактировать</button>
+        <button class="oc-btn r" onclick="deleteObject('${o.id}')">🗑</button>
+      </div>`:''}
+    </div>`).join('')||'<div style="padding:20px;text-align:center;color:var(--mu)">Нет объектов</div>';
+}
+function addObjTechItem() {
+  const cont=document.getElementById('obj-tech-items');
+  const idx=objTechCounter++;
+  const div=document.createElement('div');
+  div.style.cssText='background:var(--gr);border-radius:9px;padding:10px;margin-bottom:8px';
+  div.innerHTML=`<div class="fg-grid2">
+    <div class="fg fg-full"><label>Техника</label><input type="text" class="obj-ti-name" placeholder="Автовышка 28м"/></div>
+    <div class="fg"><label>С числа</label><input type="date" class="obj-ti-from"/></div>
+    <div class="fg"><label>По число</label><input type="date" class="obj-ti-to"/></div>
+    <div class="fg"><label>Статус</label><select class="obj-ti-st"><option value="w">В работе</option><option value="r">Ожидание</option></select></div>
+    <div class="fg" style="align-self:flex-end"><button type="button" class="ab ab-r" onclick="this.closest('div[style]').remove()">🗑</button></div>
+  </div>`;
+  cont.appendChild(div);
+}
+function openAddObject() {
+  objEditId=null; objTechCounter=0;
+  document.getElementById('obj-modal-h').textContent='Добавить объект';
+  document.getElementById('obj-save-btn').textContent='Добавить объект';
+  ['obj-name','obj-addr','obj-resp','obj-type'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('obj-fp').value='0';
+  document.getElementById('obj-status').value='active';
+  document.getElementById('obj-edit-id').value='';
+  document.getElementById('obj-tech-items').innerHTML='';
+  openModal('addObjOv');
+}
+function openEditObject(id) {
+  const o=OBJECTS.find(x=>x.id===id);if(!o)return;
+  objEditId=id; objTechCounter=0;
+  document.getElementById('obj-modal-h').textContent='Редактировать объект';
+  document.getElementById('obj-save-btn').textContent='Сохранить';
+  document.getElementById('obj-name').value=o.name;
+  document.getElementById('obj-addr').value=o.addr;
+  document.getElementById('obj-resp').value=o.resp||'';
+  document.getElementById('obj-fp').value=o.fp||0;
+  document.getElementById('obj-status').value=o.st||'active';
+  document.getElementById('obj-type').value=o.type||'';
+  document.getElementById('obj-edit-id').value=id;
+  // Рендер техники
+  const cont=document.getElementById('obj-tech-items');
+  cont.innerHTML='';
+  (o.tech||[]).forEach(t=>{
+    const div=document.createElement('div');
+    div.style.cssText='background:var(--gr);border-radius:9px;padding:10px;margin-bottom:8px';
+    div.innerHTML=`<div class="fg-grid2">
+      <div class="fg fg-full"><label>Техника</label><input type="text" class="obj-ti-name" value="${t.name}" placeholder="Автовышка 28м"/></div>
+      <div class="fg"><label>С числа</label><input type="date" class="obj-ti-from" value="${toInputDate(t.dateFrom)}"/></div>
+      <div class="fg"><label>По число</label><input type="date" class="obj-ti-to" value="${toInputDate(t.dateTo)}"/></div>
+      <div class="fg"><label>Статус</label><select class="obj-ti-st"><option value="w" ${t.status==='w'?'selected':''}>В работе</option><option value="r" ${t.status==='r'?'selected':''}>Ожидание</option></select></div>
+      <div class="fg" style="align-self:flex-end"><button type="button" class="ab ab-r" onclick="this.closest('div[style]').remove()">🗑</button></div>
+    </div>`;
+    cont.appendChild(div);
+  });
+  openModal('addObjOv');
+}
+function saveObject() {
+  const name=(document.getElementById('obj-name').value||'').trim();
+  const addr=(document.getElementById('obj-addr').value||'').trim();
+  if(!name||!addr){toast('⚠️ Укажите название и адрес');return;}
+  const names=[...document.querySelectorAll('.obj-ti-name')].map(i=>i.value.trim());
+  const froms=[...document.querySelectorAll('.obj-ti-from')].map(i=>fromInputDate(i.value));
+  const tos=[...document.querySelectorAll('.obj-ti-to')].map(i=>fromInputDate(i.value));
+  const stats=[...document.querySelectorAll('.obj-ti-st')].map(i=>i.value);
+  const tech=names.map((n,i)=>({name:n,dateFrom:froms[i],dateTo:tos[i],status:stats[i]})).filter(t=>t.name);
+  const obj={name,addr,resp:document.getElementById('obj-resp').value.trim(),fp:parseInt(document.getElementById('obj-fp').value)||0,st:document.getElementById('obj-status').value,type:document.getElementById('obj-type').value.trim(),tech};
+  const editId=document.getElementById('obj-edit-id').value;
+  if(editId){
+    const idx=OBJECTS.findIndex(x=>x.id===editId);
+    if(idx>=0){OBJECTS[idx]={...OBJECTS[idx],...obj};if(fbReady&&db)fbUpdate('objects/'+editId,OBJECTS[idx]);}
+    addJournal('✏️',`Обновлён объект: ${name}`);
+  } else {
+    const o={id:'o'+Date.now(),...obj};
+    OBJECTS.push(o);if(fbReady&&db)fbUpdate('objects/'+o.id,o);
+    addJournal('➕',`Добавлен объект: ${name}`);
+  }
+  saveLocal();closeModal('addObjOv');renderAll();toast('✅ Сохранено');
+}
+function deleteObject(id) {
+  if(!confirm('Удалить объект?'))return;
+  const o=OBJECTS.find(x=>x.id===id);
+  OBJECTS.splice(OBJECTS.findIndex(x=>x.id===id),1);
+  if(fbReady&&db)fbRemove('objects/'+id);
+  saveLocal();addJournal('🗑',`Удалён объект: ${o?.name}`);renderAll();toast('🗑 Объект удалён');
+}
+
+// ══════════════════════════════════════════
+//  USERS
+// ══════════════════════════════════════════
+function renderMUsers() {
+  const el=document.getElementById('m-users-list');if(!el)return;
+  el.innerHTML=USERS.map(u=>`
+    <div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:12px 13px;margin-bottom:7px;box-shadow:0 1px 3px rgba(0,0,0,.05)">
+      <div style="width:38px;height:38px;border-radius:50%;background:${u.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0">${u.ini}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700">${u.name}</div>
+        <div style="font-size:11px;color:var(--mu)">${u.obj}</div>
+        <div style="font-size:10px;color:var(--bl);margin-top:1px">логин: ${u.login}</div>
+        ${u.linkedObj?`<div style="font-size:10px;color:var(--gn)">📍 ${u.linkedObj}</div>`:''}
+      </div>
+      ${pill(u.role==='admin'?'pr-':u.role==='manager'?'po-':'pb-',u.role==='admin'?'Адм':u.role==='manager'?'Рук':'Польз')}
+      ${u.role!=='admin'?`<div style="display:flex;gap:4px">
+        <button class="ab" onclick="openEditUser('${u.id}')">✏️</button>
+        <button class="ab ab-r" onclick="deleteUser('${u.id}')">✕</button>
+      </div>`:''}
+    </div>`).join('');
+  // Обновляем выпадашку объектов в форме добавления
+  const sel=document.getElementById('u-linked-obj');
+  if(sel){sel.innerHTML='<option value="">— Без привязки —</option>'+OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('');}
+}
+function renderMyTeam() {
+  const el=document.getElementById('m-team-list');if(!el)return;
+  const myObj=CU.linkedObj;
+  const team=USERS.filter(u=>u.linkedObj===myObj&&u.id!==CU.id);
+  el.innerHTML=team.length?team.map(u=>`
+    <div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:12px;margin-bottom:7px;box-shadow:0 1px 3px rgba(0,0,0,.05)">
+      <div style="width:36px;height:36px;border-radius:50%;background:${u.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff">${u.ini}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700">${u.name}</div><div style="font-size:11px;color:var(--mu)">${u.obj}</div></div>
+      ${pill('pb-','Сотрудник')}
+    </div>`).join(''):'<div style="color:var(--mu);padding:20px;text-align:center">Нет сотрудников на вашем объекте</div>';
+}
+function openAddUser(isManagerAdding=false) {
+  document.getElementById('user-modal-h').textContent='Новый пользователь';
+  document.getElementById('u-edit-id').value='';
+  ['u-name','u-obj','u-login','u-pass'].forEach(id=>document.getElementById(id).value='');
+  // Если руководитель добавляет — автоматически привязываем к его объекту
+  const sel=document.getElementById('u-linked-obj');
+  if(isManagerAdding&&CU.role==='manager'){
+    sel.value=CU.linkedObj||'';
+  }
+  renderMUsers();
+  openModal('addUserOv');
+}
+function openEditUser(id) {
+  const u=USERS.find(x=>x.id===id);if(!u)return;
+  document.getElementById('user-modal-h').textContent='Редактировать пользователя';
+  document.getElementById('u-name').value=u.name;
+  document.getElementById('u-obj').value=u.obj;
+  document.getElementById('u-login').value=u.login;
+  document.getElementById('u-pass').value=u.pass;
+  document.getElementById('u-role').value=u.role;
+  document.getElementById('u-edit-id').value=id;
+  document.querySelectorAll('#addUserOv .tog-btn').forEach(b=>b.classList.toggle('sel',b.onclick?.toString().includes("'"+u.role+"'")));
+  const sel=document.getElementById('u-linked-obj');
+  if(sel) sel.value=u.linkedObj||'';
+  renderMUsers();
+  openModal('addUserOv');
+}
+function selUserRole(el,r) {
+  document.querySelectorAll('#addUserOv .tog-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel'); document.getElementById('u-role').value=r;
+}
+function saveUser() {
+  const name=(document.getElementById('u-name').value||'').trim();
+  const obj=(document.getElementById('u-obj').value||'').trim();
+  const login=(document.getElementById('u-login').value||'').trim();
+  const pass=(document.getElementById('u-pass').value||'').trim();
+  const role=document.getElementById('u-role').value;
+  const linkedObj=document.getElementById('u-linked-obj').value;
+  const editId=document.getElementById('u-edit-id').value;
+  if(!name||!login){toast('⚠️ Заполните обязательные поля');return;}
+  if(!editId&&pass.length<6){toast('⚠️ Пароль минимум 6 символов');return;}
+  if(!editId&&USERS.find(u=>u.login===login)){toast('⚠️ Логин уже занят');return;}
+  if(editId){
+    const u=USERS.find(x=>x.id===editId);
+    if(u){Object.assign(u,{name,obj,login,pass:pass||u.pass,role,linkedObj,ini:initials(name)});if(fbReady&&db)fbUpdate('users/'+editId,u);addJournal('✏️',`Изменён пользователь: ${name}`);}
+  } else {
+    const color=nextColor(),ini=initials(name);
+    const u={id:'u'+Date.now(),name,obj,login,pass,role,linkedObj,color,ini};
+    USERS.push(u);if(fbReady&&db)fbUpdate('users/'+u.id,u);addJournal('➕',`Создан пользователь: ${name} (${role})`);
+  }
+  saveLocal();closeModal('addUserOv');renderAll();toast('✅ Пользователь сохранён · логин: '+login);
+}
+function deleteUser(id) {
+  if(!confirm('Удалить пользователя?'))return;
+  const u=USERS.find(x=>x.id===id);
+  USERS.splice(USERS.findIndex(x=>x.id===id),1);
+  if(fbReady&&db)fbRemove('users/'+id);
+  saveLocal();addJournal('🗑',`Удалён пользователь: ${u?.name}`);renderAll();toast('🗑 Удалён');
+}
+
+// ══════════════════════════════════════════
+//  PROFILE
+// ══════════════════════════════════════════
+function renderProfile() {
+  const isAdmin = CU.role==='admin';
+  const html = `
+  <div class="profile-card">
+    <div class="profile-av-big" style="background:${CU.color}">${CU.ini}</div>
+    <div class="profile-name">${CU.name}</div>
+    <div class="profile-role">${CU.obj}</div>
+    <div class="profile-info">
+      <div class="pi-row"><span class="pi-lbl">Роль</span><span class="pi-val">${CU.role==='admin'?'Администратор':CU.role==='manager'?'Руководитель':'Пользователь'}</span></div>
+      <div class="pi-row"><span class="pi-lbl">Привязан к объекту</span><span class="pi-val">${CU.linkedObj||'—'}</span></div>
+      <div class="pi-row">
+        <span class="pi-lbl">Логин</span>
+        <span class="pi-val mono">${CU.login}</span>
+      </div>
+      ${isAdmin?`<div class="pi-row">
+        <span class="pi-lbl">Пароль (видит только адм.)</span>
+        <div style="display:flex;align-items:center;gap:7px">
+          <span class="pi-val mono" id="prof-pass-val">••••••••</span>
+          <button style="background:none;border:none;color:var(--mu);font-size:14px;cursor:pointer" onclick="toggleProfilePass()">👁</button>
+        </div>
+      </div>`:''}
+    </div>
+  </div>
+  <div class="profile-card">
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px">🔑 Изменить пароль</div>
+    <div class="m-fg"><label>Новый пароль</label>
+      <div class="m-pass-wrap">
+        <input id="prof-new-pass" type="password" placeholder="Минимум 6 символов"/>
+        <button class="m-eye" onclick="togglePass('prof-new-pass',this)" tabindex="-1">👁</button>
+      </div>
+    </div>
+    <div class="m-fg"><label>Повторите пароль</label>
+      <input id="prof-confirm-pass" type="password" placeholder="Повторите пароль"/>
+    </div>
+    <button class="m-submit" style="padding:13px" onclick="changePassword()">Сменить пароль</button>
+  </div>`;
+  const el=document.getElementById('m-profile-content');
+  if(el) el.innerHTML=html;
+}
+let passShown = false;
+function toggleProfilePass() {
+  passShown=!passShown;
+  const el=document.getElementById('prof-pass-val');
+  if(el) el.textContent=passShown?CU.pass:'••••••••';
+}
+function changePassword() {
+  const np=(document.getElementById('prof-new-pass')?.value||'').trim();
+  const cp=(document.getElementById('prof-confirm-pass')?.value||'').trim();
+  if(!np||np.length<6){toast('⚠️ Пароль минимум 6 символов');return;}
+  if(np!==cp){toast('⚠️ Пароли не совпадают');return;}
+  CU.pass=np;
+  const u=USERS.find(x=>x.id===CU.id);
+  if(u){u.pass=np;if(fbReady&&db)fbUpdate('users/'+u.id,{pass:np});saveLocal();}
+  addJournal('🔑','Пользователь изменил пароль: '+CU.name);
+  toast('✅ Пароль изменён');
+  ['prof-new-pass','prof-confirm-pass'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+
+// ══════════════════════════════════════════
+//  ORDER FORM
+// ══════════════════════════════════════════
+function buildOrderForm(isMobile, techId) {
+  const t = TECH.find(x=>x.id===techId);
+  const minD = fmtDate(minDelivDate(promoApplied));
+  const hint = minDateHint();
+  const objOpts = OBJECTS.map(o=>`<option value="${o.name}">${o.name}</option>`).join('');
+  const F = isMobile?'m-fg':'fg';
+  const SUB = isMobile?'m-submit':'modal-submit';
+  return `
+  <form id="orderForm" onsubmit="submitOrder(event)">
+    <div class="reg-hint">📅 Ближайшая дата приезда техники: <b>${hint}</b></div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Промокод (если есть)</div>
+      <div class="promo-row">
+        <input class="promo-inp" id="promo-field-v" type="text" placeholder="XXXXXX" maxlength="6"/>
+        <button type="button" style="background:var(--og);color:#fff;border:none;border-radius:9px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer" onclick="applyPromo()">Применить</button>
+      </div>
+      <div class="promo-ok-msg" id="promo-ok-msg">✅ Промокод принят — дата снята</div>
+    </div>
+    <input type="hidden" id="f-promo" value="0"/>
+
+    <div class="${F}"><label>Ваше имя <span class="req-star">*</span></label><input id="f-name" type="text" value="${CU?.name||''}" required/></div>
+
+    <!-- ТИП РАБОТЫ -->
+    <div class="${F}"><label>Тип работы <span class="req-star">*</span></label>
+      <select id="f-work-type" onchange="onWorkTypeChange(this)">
+        <option value="">— Выберите тип —</option>
+        ${WORK_TYPES.map(w=>`<option value="${w}">${w}</option>`).join('')}
+      </select>
+      <input type="text" id="f-work-custom" class="custom-inp" placeholder="Опишите тип работы..."/>
+    </div>
+
+    <!-- КУДА/ОТКУДА ИЛИ ОБЪЕКТ -->
+    <div class="${F}"><label>Характер работы <span class="req-star">*</span></label>
+      <div class="${isMobile?'m-tog-row':'tog-row'}" style="grid-template-columns:1fr 1fr 1fr 1fr">
+        <div class="${isMobile?'m-tog-btn':'tog-btn'} sel" onclick="setWT(this,'site')">📍 На месте</div>
+        <div class="${isMobile?'m-tog-btn':'tog-btn'}" onclick="setWT(this,'delivery')">🚛 Доставка</div>
+        <div class="${isMobile?'m-tog-btn':'tog-btn'}" onclick="setWT(this,'container')">📦 Контейнер</div>
+        <div class="${isMobile?'m-tog-btn':'tog-btn'}" onclick="setWT(this,'equip')">⚙️ Оборудование</div>
+      </div>
+      <input type="hidden" id="f-wtype" value="site"/>
+    </div>
+    <div class="${F}" id="bl-site">
+      <label>Объект <span class="req-star">*</span></label>
+      <select id="f-obj-site" required onchange="chkCustom('f-obj-site','f-obj-cust')">
+        <option value="">— Выберите объект —</option>${objOpts}
+        <option value="__c__">✍️ Другой адрес...</option>
+      </select>
+      <input type="text" id="f-obj-cust" class="custom-inp" placeholder="Укажите адрес вручную"/>
+    </div>
+    <div class="${F}" id="bl-from" style="display:none">
+      <label>Откуда <span class="req-star">*</span></label>
+      <select id="f-from" onchange="chkCustom('f-from','f-from-cust')">
+        <option value="">— Откуда —</option>${objOpts}
+        <option value="__c__">✍️ От поставщика / другой адрес...</option>
+      </select>
+      <input type="text" id="f-from-cust" class="custom-inp" placeholder="Укажите адрес отправления"/>
+    </div>
+    <div class="${F}" id="bl-to" style="display:none">
+      <label>Куда <span class="req-star">*</span></label>
+      <select id="f-to" onchange="chkCustom('f-to','f-to-cust')">
+        <option value="">— Куда —</option>${objOpts}
+        <option value="__c__">✍️ На другой адрес...</option>
+      </select>
+      <input type="text" id="f-to-cust" class="custom-inp" placeholder="Укажите адрес назначения"/>
+    </div>
+
+    <!-- КОНТАКТЫ ДЛЯ ДОСТАВКИ -->
+    <div id="bl-contacts" style="display:none">
+      <div class="${F}">
+        <label>📞 Контакт отправителя</label>
+        <input id="f-contact-from" type="text" placeholder="Иванов И.И. +7(___) ___-__-__"/>
+      </div>
+      <div class="${F}">
+        <label>📞 Контакт получателя</label>
+        <input id="f-contact-to" type="text" placeholder="Петров П.П. +7(___) ___-__-__"/>
+      </div>
+    </div>
+
+    <!-- ВРЕМЯ РАБОТЫ -->
+    <div class="${F}"><label>Время работы <span class="req-star">*</span></label>
+      <div class="${isMobile?'m-tog-row':'tog-row'}" style="${isMobile?'':'grid-template-columns:1fr 1fr 1fr'}">
+        <div class="${isMobile?'m-tog-btn':'tog-btn'} sel" onclick="setTimeSlot(this,'anytime')">🕐 В любое время</div>
+        <div class="${isMobile?'m-tog-btn':'tog-btn'}" onclick="setTimeSlot(this,'morning')">🌅 Первая половина дня</div>
+        <div class="${isMobile?'m-tog-btn':'tog-btn'}" onclick="setTimeSlot(this,'evening')">🌆 Вторая половина дня</div>
+      </div>
+      <input type="hidden" id="f-timeslot" value="anytime"/>
+      <div class="time-note" id="time-note"></div>
+      <input type="text" id="f-time-comment" class="custom-inp" placeholder="Комментарий: зачем нужно это время..." style="display:none;margin-top:7px"/>
+    </div>
+
+    <!-- СТАТЬЯ ЗАТРАТ -->
+    <div class="${F}"><label>📊 Статья затрат <span class="cost-req req-star">(обязательно)</span></label>
+      <select id="f-cost" required>
+        <option value="">— Выберите статью —</option>
+        ${OBJECTS.map(o=>`<optgroup label="${o.name}"><option>${o.name} — Механизация</option><option>${o.name} — Доставка</option></optgroup>`).join('')}
+      </select>
+    </div>
+
+    <!-- ТЕХНИКА -->
+    <div class="${F}"><label>Техника <span class="req-star">*</span></label>
+      <select id="f-tech" required>
+        <option value="">— Выберите технику —</option>
+        <optgroup label="🏗 Манипуляторы"><option value="manip7">Манипулятор 7т — КМУ борт</option><option value="manip7f">Манипулятор 7т — Фура с КМУ</option><option value="manip10">Манипулятор 10т — КМУ борт</option></optgroup>
+        <optgroup label="🏚 Автокраны"><option value="crane25">Автокран 25т</option><option value="crane50">Автокран 50т</option><option value="crane100">Автокран 100т</option></optgroup>
+        <optgroup label="🔧 Автовышки"><option value="lift18">Автовышка 18м</option><option value="lift28">Автовышка 28м</option><option value="lift45">Автовышка 45м</option></optgroup>
+        <optgroup label="⚡ Электротехника"><option value="elbow14">Эл. вышка коленч. 14м</option><option value="elbow20">Эл. вышка коленч. 20м</option><option value="elsciss8">Эл. вышка ножн. 8м</option><option value="elsciss12">Эл. вышка ножн. 12м</option><option value="vacuum">Вакуумный захват</option></optgroup>
+        <optgroup label="🚐 Грузовые"><option value="gazel">Газель / Ларгус</option><option value="longb">Длинномер</option><option value="truck">Фура</option></optgroup>
+      </select>
+    </div>
+
+    <div class="${F}"><label>Дата приезда <span class="req-star">*</span></label>
+      <input type="date" id="f-date" min="${minD}" required/>
+      <small style="color:var(--mu);font-size:11px;margin-top:2px">Раньше ${hint} — недоступно</small>
+    </div>
+
+    <div class="${F}"><label>Срочность</label>
+      <div class="${isMobile?'m-urg':'tog-row'}">
+        <div class="${isMobile?'m-ub':'tog-btn'} sel" onclick="setUrg(this)">📅 Плановая</div>
+        <div class="${isMobile?'m-ub':'tog-btn'}" onclick="setUrg(this)">🕐 Стандарт</div>
+        <div class="${isMobile?'m-ub':'tog-btn'}" onclick="setUrg(this)">🔴 Срочно</div>
+      </div>
+    </div>
+
+    <div class="${F}"><label>Ответственный</label>
+      <select id="f-resp">
+        <option value="">— Выбрать —</option>
+        ${USERS.filter(u=>u.role!=='user'||u.id===CU?.id).map(u=>`<option value="${u.name}">${u.name}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="${F}"><label>Описание задачи <span class="req-star">*</span></label>
+      <textarea id="f-desc" ${isMobile?'':'style="resize:vertical;min-height:70px"'} placeholder="Что нужно сделать, особенности, объём работ..." required></textarea>
+    </div>
+
+    <button type="submit" class="${SUB}">📤 Отправить заявку</button>
+  </form>`;
+}
+
+// Form helpers
+function onWorkTypeChange(sel) {
+  const inp=document.getElementById('f-work-custom');
+  if(inp) inp.style.display=sel.value==='Другое (свой вариант)'?'block':'none';
+}
+function chkCustom(selId,inpId) {
+  const s=document.getElementById(selId),i=document.getElementById(inpId);
+  if(s&&i) i.style.display=s.value==='__c__'?'block':'none';
+}
+function getVal(selId,inpId) {
+  const s=document.getElementById(selId);if(!s)return'';
+  return s.value==='__c__'?(document.getElementById(inpId)?.value||''):s.value;
+}
+function setWT(el,t) {
+  const cls=el.classList.contains('m-tog-btn')?'.m-tog-btn':'.tog-btn';
+  el.closest('.m-fg,.fg').querySelectorAll(cls).forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel'); document.getElementById('f-wtype').value=t;
+  const site=t==='site';
+  document.getElementById('bl-site').style.display=site?'block':'none';
+  document.getElementById('bl-from').style.display=site?'none':'block';
+  document.getElementById('bl-to').style.display=site?'none':'block';
+  document.getElementById('bl-contacts').style.display=site?'none':'block';
+  document.getElementById('f-obj-site').required=site;
+  document.getElementById('f-from').required=!site;
+  document.getElementById('f-to').required=!site;
+}
+function setTimeSlot(el,slot) {
+  const cls=el.classList.contains('m-tog-btn')?'.m-tog-btn':'.tog-btn';
+  el.closest('.m-fg,.fg').querySelectorAll(cls).forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel'); document.getElementById('f-timeslot').value=slot;
+  const note=document.getElementById('time-note');
+  const cmt=document.getElementById('f-time-comment');
+  if(slot==='morning'){
+    note.style.display='block';note.textContent='🌅 Первая половина дня (до 13:00) — техника должна прибыть до обеда. Укажите причину:';
+    cmt.style.display='block';
+  }else if(slot==='evening'){
+    note.style.display='block';note.textContent='🌆 Вторая половина дня (после 13:00) — техника прибудет после обеда. Укажите причину:';
+    cmt.style.display='block';
+  }else{
+    note.style.display='none';cmt.style.display='none';
+  }
+}
+function setUrg(el) {
+  const cls=el.classList.contains('m-ub')?'.m-ub':'.tog-btn';
+  el.closest('.m-fg,.fg').querySelectorAll(cls).forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function submitOrder(e) {
+  e.preventDefault();
+  const wtype=document.getElementById('f-wtype')?.value||'site';
+  const cost=document.getElementById('f-cost')?.value;
+  if(!cost){toast('⚠️ Выберите статью затрат');return;}
+  const techId=document.getElementById('f-tech')?.value;
+  const tech=TECH.find(x=>x.id===techId);
+  const date=document.getElementById('f-date')?.value;
+  const promoOk=document.getElementById('f-promo')?.value==='1'||promoApplied;
+  if(date&&new Date(date)<minDelivDate(promoOk)&&!promoOk){toast('⚠️ Дата нарушает регламент');return;}
+  const wtSel=document.getElementById('f-work-type')?.value;
+  const workType=wtSel==='Другое (свой вариант)'?(document.getElementById('f-work-custom')?.value||'Другое'):wtSel;
+  const timeSlot=document.getElementById('f-timeslot')?.value||'anytime';
+  const timeComment=document.getElementById('f-time-comment')?.value||'';
+  const obj=wtype==='site'?getVal('f-obj-site','f-obj-cust'):'';
+  const from=wtype!=='site'?getVal('f-from','f-from-cust'):'';
+  const to=wtype!=='site'?getVal('f-to','f-to-cust'):'';
+  const urgEl=document.querySelector('.m-ub.sel,.tog-btn.sel');
+  const id='#'+(ORDER_ID++);
+  const order={
+    id,userId:CU.id,userName:CU.name,
+    obj,from,to,
+    tech:tech?.name||techId,techId,
+    wtype,workType,timeSlot,timeComment,
+    contactFrom:document.getElementById('f-contact-from')?.value||'',
+    contactTo:document.getElementById('f-contact-to')?.value||'',
+    date,cost,
+    desc:document.getElementById('f-desc')?.value||'',
+    resp:document.getElementById('f-resp')?.value||'',
+    urgent:urgEl?.textContent?.trim()||'Плановая',
+    st:'Новая',
+    ts:new Date().toLocaleString('ru-RU'),
+  };
+  ORDERS.unshift(order);
+  if(fbReady&&db) fbUpdate('orders/'+id.replace('#','ord'),order);
+  saveLocal();
+  sendEmail(order);
+  promoApplied=false;
+  addJournal('📝',`Новая заявка ${id}: ${order.tech} → ${order.obj||order.to}`);
+  closeSheet('orderOv'); closeModal('dOrderOv');
+  renderAll(); toast('✅ Заявка '+id+' отправлена!');
+}
+
+// ══════════════════════════════════════════
+//  ORDER OPEN
+// ══════════════════════════════════════════
+function openOrder(techId) {
+  if(!isMobileDevice()){openDOrder(techId);return;}
+  const t=TECH.find(x=>x.id===techId);
+  document.getElementById('s-title').textContent=t?'Заявка: '+t.name:'Новая заявка';
+  const stEl=document.getElementById('s-tech');
+  if(t){stEl.style.display='block';document.getElementById('s-ico').textContent=t.ico;document.getElementById('s-name').textContent=t.name;document.getElementById('s-model').textContent=t.model;document.getElementById('s-specs').innerHTML=t.specs.map(s=>`<div class="sh-sp"><b>${s[1]}</b> ${s[0]}</div>`).join('');}
+  else stEl.style.display='none';
+  document.getElementById('s-form').innerHTML=buildOrderForm(true,techId);
+  if(techId)setTimeout(()=>{const s=document.getElementById('f-tech');if(s)s.value=techId;},50);
+  openSheet('orderOv');
+}
+
+// ══════════════════════════════════════════
+//  PHONE
+// ══════════════════════════════════════════
+function openPhone(id,name,phone,role,color,ini) {
+  let d=id?DRIVERS.find(x=>x.id===id):null;
+  if(d){name=d.name;phone=d.phone;role=d.role;color=d.color;ini=d.ini;}
+  if(!phone){toast('📞 Телефон не указан');return;}
+  document.getElementById('ph-av').style.background=color;document.getElementById('ph-av').textContent=ini;
+  document.getElementById('ph-name').textContent=name;document.getElementById('ph-role').textContent=role;document.getElementById('ph-num').textContent=phone;
+  openSheet('phoneOv');
+}
+function fakeCall(){toast('📞 Вызов: '+document.getElementById('ph-num').textContent);closeSheet('phoneOv');}
+
+// ══════════════════════════════════════════
+//  SHEET / MODAL
+// ══════════════════════════════════════════
+function openSheet(id){const ov=document.getElementById(id);ov.style.display='flex';requestAnimationFrame(()=>ov.classList.add('open'));document.body.style.overflow='hidden';}
+function closeSheet(id){const ov=document.getElementById(id);ov.classList.remove('open');setTimeout(()=>ov.style.display='none',320);document.body.style.overflow='';}
+function sheetBg(e,id){if(e.target===document.getElementById(id))closeSheet(id);}
+function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
+function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
+function modalBg(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+
+// ══════════════════════════════════════════
+//  DESKTOP
+// ══════════════════════════════════════════
+let currentDPage='home';
+function initDesktop(){
+  document.getElementById('dWrap').style.display='block';
+  document.getElementById('d-uav').style.background=CU.color;document.getElementById('d-uav').textContent=CU.ini;
+  document.getElementById('d-uname').textContent=CU.name;
+  if(CU.role==='admin') document.querySelectorAll('.admin-el').forEach(e=>e.style.display='block');
+  if(CU.role==='manager'||CU.role==='admin') document.querySelectorAll('.manager-el').forEach(e=>e.style.display='block');
+  updateFBStatus();
+  renderAll(); dPage('home',document.querySelector('.d-ni.act'));
+}
+function dPage(id,el){
+  currentDPage=id;
+  document.querySelectorAll('.d-ni').forEach(x=>x.classList.remove('act'));
+  if(el)el.classList.add('act');
+  renderDPage(id);
+}
+function renderDPage(id){
+  const m=document.getElementById('dMain');
+  const isAdmin=CU?.role==='admin';
+  const isManager=CU?.role==='manager';
+  const orders=visibleOrders();
+
+  const commonBtns=`<div class="ph-actions"><button class="btn-r" onclick="${isAdmin?'openDOrder(null)':'openOrder(null)'}">＋ Новая заявка</button></div>`;
+
+  if(id==='home'){
+    m.innerHTML=`
+    <div class="ph"><div class="ph-title">Главная · <span>${CU.name.split(' ')[0]}</span></div>${commonBtns}</div>
+    <div style="background:rgba(200,16,46,.07);border:1px solid rgba(200,16,46,.16);border-radius:12px;padding:12px 16px;margin-bottom:18px">
+      <div style="font-size:11px;color:var(--r);font-weight:700">📞 ЛОГИСТ / АДМИНИСТРАТОР</div>
+      <div style="font-size:16px;font-weight:800">Юрченков Владислав · 8-906-099-88-09</div>
+      <div style="font-size:11px;color:var(--mu)">⚡ Личная разработка ведущего специалиста по автотехнике GMS Group</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kcard"><div class="kv">${ROUTES.filter(r=>r.st!=='done').length}</div><div class="kl">Рейсов активных</div></div>
+      <div class="kcard g"><div class="kv">34</div><div class="kl">Подъёмников</div></div>
+      <div class="kcard b"><div class="kv">${orders.length}</div><div class="kl">Заявок всего</div></div>
+      <div class="kcard o"><div class="kv">${orders.filter(o=>o.st==='Новая').length}</div><div class="kl">Новых заявок</div></div>
+      <div class="kcard"><div class="kv">${OBJECTS.filter(o=>o.st==='active').length}</div><div class="kl">Объектов</div></div>
+      <div class="kcard p"><div class="kv">${DRIVERS.length}</div><div class="kl">Водителей</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="card">
+        <div class="card-hdr"><h3>🚛 Рейсы сегодня</h3><button class="ab" onclick="dPage('routes',null)">Все →</button></div>
+        ${ROUTES.filter(r=>r.st!=='done').slice(0,4).map(r=>{const d=DRIVERS.find(x=>x.id===r.drv)||{color:'#888',ini:'?',name:'—',phone:''};const s=RST[r.st]||{c:'pq-',l:'—'};return`<div style="padding:9px 14px;border-bottom:1px solid #f5f5f5;display:flex;justify-content:space-between;align-items:center;gap:8px"><div><div style="font-size:13px;font-weight:600">${r.ico} ${r.tech}</div><div style="font-size:11px;color:var(--mu)">${r.from} → ${r.to}</div></div><div style="display:flex;align-items:center;gap:6px">${pill(s.c,s.l)}<button class="ab" onclick="openPhone('${d.id}','${d.name}','${d.phone}','${d.role||''}','${d.color}','${d.ini}')">📞</button></div></div>`;}).join('')||'<div style="padding:16px;color:var(--mu);text-align:center">Нет активных рейсов</div>'}
+      </div>
+      <div class="card">
+        <div class="card-hdr"><h3>📝 Заявки</h3><button class="ab" onclick="dPage('orders',null)">Все →</button></div>
+        ${orders.slice(0,5).map(o=>`<div style="padding:9px 14px;border-bottom:1px solid #f5f5f5;display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div><div style="font-size:13px;font-weight:600">${o.tech}${o.workType?' · '+o.workType:''}</div><div style="font-size:11px;color:var(--mu)">${o.obj||o.from+' → '+o.to}</div></div>
+          <div style="display:flex;gap:5px;align-items:center">${stPill(o.st)}${isAdmin&&o.st==='Новая'?`<button class="ab ab-g" onclick="quickAccept('${o.id}')">✅</button><button class="ab ab-r" onclick="quickReject('${o.id}')">❌</button>`:''}</div>
+        </div>`).join('')||'<div style="padding:16px;color:var(--mu);text-align:center">Нет заявок</div>'}
+      </div>
+    </div>`;
+
+  } else if(id==='orders'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">📝 <span>Заявки</span></div><div class="ph-actions">
+      <select class="d-sel" onchange="dFilterOrders(this.value)"><option value="">Все статусы</option><option>Новая</option><option>Принята</option><option>В работе</option><option>Водитель едет</option><option>Выполнена</option><option>Отказ</option></select>
+      <input class="d-sinp" type="text" placeholder="Поиск..." oninput="dSearchOrders(this.value)"/>
+      ${commonBtns}</div></div>
+    <div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Дата</th><th>Заявитель</th><th>Объект/Маршрут</th><th>Техника</th><th>Тип работы</th><th>Время</th><th>Статья</th><th>Статус</th><th>Действия</th></tr></thead>
+      <tbody id="d-orders-tbody"></tbody></table></div>
+      <div class="tbl-foot" id="d-orders-foot"></div></div>`;
+    dRenderOrders(orders);
+
+  } else if(id==='routes'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">🚛 <span>Рейсы</span></div>
+      <div class="ph-actions">${['all','manip','gazel','long'].map((v,i)=>`<button class="${i===0?'btn-r':'btn-g'}" id="rt-${v}" onclick="dFilterRoutes('${v}')">${['Все','🏗 Манипуляторы','🚐 Газели','🚛 Длинномеры'][i]}</button>`).join('')}</div></div>
+    <div id="d-routes-list"></div>`;
+    dRenderRoutes('all');
+
+  } else if(id==='onsite'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">🏗 <span>На объектах</span></div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+      ${OBJECTS.filter(o=>o.st==='active'&&o.tech&&o.tech.length).map(o=>`<div class="card">
+        <div class="card-hdr"><h3>${o.name}</h3>${isAdmin?`<button class="ab" onclick="openOnsiteEdit('${o.id}')">✏️</button>`:''}</div>
+        <div style="padding:4px 14px 12px">
+          ${o.tech.map(t=>`<div class="ot-item">
+            <div class="ot-left"><div class="ot-name">${t.name}</div><div class="ot-dates">📅 ${t.dateFrom} — ${t.dateTo}</div></div>
+            ${pill(t.status==='w'?'pg-':'po-',t.status==='w'?'В работе':'Ожидание')}
+          </div>`).join('')}
+          <div style="font-size:11px;color:var(--mu);margin-top:8px">📍 ${o.addr}</div>
+        </div>
+      </div>`).join('')||'<div style="color:var(--mu);padding:20px">Нет данных</div>'}
+    </div>`;
+
+  } else if(id==='catalog'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">📋 <span>Техника</span></div>
+      <div class="ph-actions">${['all','manip','crane','lift','electro','cargo'].map((g,i)=>`<button class="${i===0?'btn-r':'btn-g'}" id="ct-${g}" onclick="dFilterCat('${g}')">${['Вся','Манипуляторы','Автокраны','Автовышки','Электротехника','Грузовые'][i]}</button>`).join('')}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px" id="d-cat-grid"></div>`;
+    dRenderCat('all');
+
+  } else if(id==='facades'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">🔴 <span>Подъёмники</span></div></div>
+    <div style="display:grid;grid-template-columns:1fr 360px;gap:16px">
+      <div>
+        <div class="kpi-row" style="margin-bottom:16px">
+          <div class="kcard"><div class="kv" style="color:var(--r)">34</div><div class="kl">Всего</div></div>
+          <div class="kcard g"><div class="kv">27</div><div class="kl">В работе</div></div>
+          <div class="kcard o"><div class="kv">5</div><div class="kl">Обслуживание</div></div>
+          <div class="kcard b"><div class="kv">2</div><div class="kl">Простой</div></div>
+        </div>
+        <div id="d-fp-list"></div>
+      </div>
+      <div class="card"><div class="card-hdr" style="background:var(--bk)"><h3 style="color:#fff">Карта объектов</h3></div>
+        <iframe style="width:100%;height:360px;display:block;border:none" src="https://yandex.ru/map-widget/v1/?ll=37.62%2C55.76&z=10&l=map&pt=37.938%2C55.796%2Cpm2rdm~37.764%2C55.726%2Cpm2rdm~37.506%2C55.766%2Cpm2blm~37.276%2C55.681%2Cpm2vm~37.420%2C55.780%2Cpm2blm~37.541%2C55.873%2Cpm2blm~37.200%2C55.990%2Cpm2blm~37.427%2C55.718%2Cpm2blm" allowfullscreen></iframe>
+        <div style="padding:10px;display:flex;gap:7px;border-top:1px solid var(--br)">
+          <button class="btn-r" style="font-size:11px;padding:6px 12px" onclick="dOpenFP('balashiha')">🔴 Балашиха — 27 ФП</button>
+          <button class="btn-r" style="font-size:11px;padding:6px 12px" onclick="dOpenFP('aquilon')">🔴 Аквилон — 7 ФП</button>
+        </div>
+      </div>
+    </div>`;
+    dRenderFP();
+
+  } else if(id==='stats'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">📊 <span>Статистика</span></div></div>
+    <div class="kpi-row">
+      <div class="kcard"><div class="kv">0</div><div class="kl">Рейсов за месяц</div></div>
+      <div class="kcard g"><div class="kv">${ORDERS.length}</div><div class="kl">Заявок создано</div></div>
+      <div class="kcard b"><div class="kv">0 ₽</div><div class="kl">Затраты</div></div>
+      <div class="kcard o"><div class="kv">${USERS.length}</div><div class="kl">Пользователей</div></div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:20px;text-align:center;color:var(--mu)">Детальная статистика будет накапливаться по мере работы системы</div>`;
+
+  } else if(id==='profile'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">👤 <span>Профиль</span></div></div>`;
+    renderProfile();
+    const pc=document.getElementById('m-profile-content');
+    if(pc){document.getElementById('dMain').innerHTML+=pc.innerHTML;}
+
+  } else if(id==='drivers'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">🚗 <span>Водители</span></div>
+      <div class="ph-actions">
+        <select class="d-sel" onchange="dFilterDrv(this.value)"><option value="">Все</option><option value="own">✅ Свои</option><option value="hired">🔄 Наёмные</option></select>
+        ${isAdmin?`<button class="btn-r" onclick="openModal('addDrvOv')">＋ Добавить</button>`:''}
+      </div></div>
+    <div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>Водитель</th><th>Тип</th><th>Роль</th><th>Телефон</th><th>Компания</th><th>Статус</th>${isAdmin?'<th>Действия</th>':''}</tr></thead>
+      <tbody id="d-drv-tbody"></tbody></table></div></div>`;
+    dRenderDrv('');
+
+  } else if(id==='objects'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">📍 <span>Объекты</span></div>
+      ${isAdmin?`<button class="btn-r" onclick="openAddObject()">＋ Добавить объект</button>`:''}</div>
+    <div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>Объект</th><th>Адрес</th><th>Тип</th><th>ФП</th><th>Техника</th><th>Статус</th>${isAdmin?'<th>Действия</th>':''}</tr></thead>
+      <tbody>${OBJECTS.map(o=>`<tr>
+        <td><b>${o.name}</b><div style="font-size:11px;color:var(--mu)">${o.resp||''}</div></td>
+        <td style="font-size:12px">${o.addr}</td>
+        <td>${o.type||'—'}</td>
+        <td>${o.fp>0?pill('pr-','🔴 '+o.fp):'-'}</td>
+        <td style="font-size:11px">${(o.tech||[]).map(t=>`${t.name} (${t.dateFrom}–${t.dateTo})`).join('<br>')||'—'}</td>
+        <td>${pill(o.st==='active'?'pg-':o.st==='done'?'pq-':'pb-',o.st==='active'?'Активный':o.st==='done'?'Завершён':'Плановый')}</td>
+        ${isAdmin?`<td style="display:flex;gap:5px;flex-wrap:wrap"><button class="ab" onclick="openEditObject('${o.id}')">✏️</button><button class="ab" onclick="openOnsiteEdit('${o.id}')">🏗</button><button class="ab ab-r" onclick="deleteObject('${o.id}')">🗑</button></td>`:''}
+      </tr>`).join('')}</tbody></table></div></div>`;
+
+  } else if(id==='users'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">👥 <span>Пользователи</span></div>
+      <button class="btn-r" onclick="openAddUser(false)">＋ Добавить</button></div>
+    <div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>Пользователь</th><th>Должность</th><th>Объект</th><th>Логин</th><th>Пароль</th><th>Роль</th><th>Действия</th></tr></thead>
+      <tbody>${USERS.map(u=>`<tr>
+        <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:${u.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff">${u.ini}</div><b>${u.name}</b></div></td>
+        <td>${u.obj}</td>
+        <td style="font-size:12px">${u.linkedObj||'—'}</td>
+        <td style="font-family:monospace;font-size:12px">${u.login}</td>
+        <td>${u.role!=='admin'?`<div style="display:flex;align-items:center;gap:6px">
+          <span id="pw-${u.id}" style="font-family:monospace;font-size:12px">••••••</span>
+          <button class="ab" onclick="toggleUserPass('${u.id}','${u.pass}')">👁</button>
+        </div>`:'—'}</td>
+        <td>${pill(u.role==='admin'?'pr-':u.role==='manager'?'po-':'pb-',u.role==='admin'?'Адм':u.role==='manager'?'Рук':'Польз')}</td>
+        <td style="display:flex;gap:4px">
+          <button class="ab" onclick="openEditUser('${u.id}')">✏️</button>
+          ${u.role!=='admin'?`<button class="ab ab-r" onclick="deleteUser('${u.id}')">🗑</button>`:''}
+        </td>
+      </tr>`).join('')}</tbody></table></div></div>`;
+
+  } else if(id==='promos'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">🔑 <span>Промокоды</span></div>
+      <button class="btn-r" onclick="generatePromo()">Сгенерировать</button></div>
+    <div class="card">
+      <div style="padding:14px" id="d-promo-list">
+        ${!ACTIVE_PROMOS.length?'<div style="color:var(--mu)">Нет промокодов</div>':ACTIVE_PROMOS.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--gr);border-radius:8px;margin-bottom:7px">
+          <span style="font-size:18px;font-weight:900;letter-spacing:3px">${p.code}</span>${pill(p.used?'pq-':'pg-',p.used?'Использован':'Активен')}</div>`).join('')}
+      </div>
+    </div>`;
+
+  } else if(id==='my-team'){
+    const myObj=CU.linkedObj;
+    const team=USERS.filter(u=>u.linkedObj===myObj&&u.id!==CU.id);
+    m.innerHTML=`<div class="ph"><div class="ph-title">👥 <span>Мои сотрудники</span></div>
+      <button class="btn-r" onclick="openAddUser(true)">＋ Добавить</button></div>
+    <div style="font-size:13px;color:var(--mu);margin-bottom:14px">Объект: <b>${myObj||'—'}</b></div>
+    <div class="card">
+      ${team.length?`<div class="tbl-wrap"><table><thead><tr><th>Сотрудник</th><th>Должность</th><th>Логин</th><th>Заявок</th></tr></thead>
+      <tbody>${team.map(u=>`<tr>
+        <td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:${u.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff">${u.ini}</div><b>${u.name}</b></div></td>
+        <td>${u.obj}</td><td style="font-family:monospace">${u.login}</td>
+        <td>${ORDERS.filter(o=>o.userId===u.id).length}</td>
+      </tr>`).join('')}</tbody></table></div>`:
+      '<div style="padding:20px;text-align:center;color:var(--mu)">Нет сотрудников на вашем объекте</div>'}
+    </div>`;
+
+  } else if(id==='journal'){
+    m.innerHTML=`<div class="ph"><div class="ph-title">📒 <span>Журнал действий</span></div></div>
+    <div class="card"><div id="d-journal-list" style="max-height:600px;overflow-y:auto"></div></div>`;
+    renderJournal();
+  }
+}
+
+// Desktop helpers
+function toggleUserPass(id,pass) {
+  const el=document.getElementById('pw-'+id);
+  if(el) el.textContent=el.textContent.includes('•')?pass:'••••••';
+}
+function dRenderOrders(orders){
+  const tbody=document.getElementById('d-orders-tbody'),foot=document.getElementById('d-orders-foot');
+  if(!tbody)return;
+  const isAdmin=CU?.role==='admin';
+  const timeL={'anytime':'В любое время','morning':'Первая половина','evening':'Вторая половина'};
+  tbody.innerHTML=orders.map(o=>`<tr>
+    <td><b>${o.id}</b></td><td style="white-space:nowrap">${o.date}</td><td>${o.userName}</td>
+    <td><b>${o.obj||''}</b>${o.from?`<div style="font-size:11px;color:var(--mu)">${o.from} → ${o.to}</div>`:''}</td>
+    <td>${o.tech}${o.workType?`<div style="font-size:11px;color:var(--mu)">${o.workType}</div>`:''}</td>
+    <td style="font-size:11px">${timeL[o.timeSlot||'anytime']}${o.timeComment?`<div style="color:var(--og)">${o.timeComment}</div>`:''}</td>
+    <td style="font-size:11px">${o.cost||''}</td>
+    <td>${stPill(o.st)}${o.comment?`<div style="font-size:10px;color:var(--mu);margin-top:2px">💬 ${o.comment}</div>`:''}</td>
+    <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap">
+      ${isAdmin?`<button class="ab" onclick="openStatus('${o.id}')">✏️</button>`:''}
+      ${isAdmin&&o.st==='Новая'?`<button class="ab ab-g" onclick="quickAccept('${o.id}')">✅</button><button class="ab ab-r" onclick="quickReject('${o.id}')">❌</button>`:''}
+      ${o.st==='Водитель едет'?`<button class="ab ab-g" onclick="confirmArrival('${o.id}')">✅ Прибыл</button>`:''}
+    </td>
+  </tr>`).join('')||'<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--mu)">Нет заявок</td></tr>';
+  if(foot) foot.textContent=`Показано ${orders.length} заявок`;
+}
+function dFilterOrders(st){dRenderOrders(visibleOrders().filter(o=>!st||o.st===st));}
+function dSearchOrders(q){dRenderOrders(visibleOrders().filter(o=>!q||JSON.stringify(o).toLowerCase().includes(q.toLowerCase())));}
+function dRenderRoutes(f){
+  const el=document.getElementById('d-routes-list');if(!el)return;
+  const list=f==='all'?ROUTES:ROUTES.filter(r=>r.grp===f);
+  const isAdmin=CU?.role==='admin';
+  el.innerHTML=list.map(r=>{
+    const d=DRIVERS.find(x=>x.id===r.drv)||{color:'#888',ini:'?',name:'—',phone:''};
+    const s=RST[r.st]||{c:'pq-',l:'—'};
+    return `<div class="card" style="margin-bottom:10px"><div style="padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:0 12px;align-items:center">
+      <div style="font-size:24px">${r.ico}</div>
+      <div><div style="font-size:13px;font-weight:700;margin-bottom:3px">${r.tech}</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);margin-bottom:4px;flex-wrap:wrap">
+          <span style="background:var(--gr);padding:2px 7px;border-radius:5px;font-weight:600;color:var(--tx)">${r.from}</span>
+          <span style="color:var(--r);font-weight:700">→</span>
+          <span style="background:var(--gr);padding:2px 7px;border-radius:5px;font-weight:600;color:var(--tx)">${r.to}</span>
+        </div>
+        <div style="font-size:11px;color:var(--mu)">📦 ${r.cargo} · 🕐 ${r.time}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
+        ${pill(s.c,s.l)}
+        <button class="ab" onclick="openPhone('${d.id}','${d.name}','${d.phone}','${d.role||''}','${d.color}','${d.ini}')">📞 ${d.name.split(' ')[0]}</button>
+        ${isAdmin?`<select style="font-size:11px;border:1px solid var(--br);border-radius:6px;padding:4px 8px;background:var(--gr)" onchange="changeRouteSt('${r.id}',this.value)">
+          <option value="go" ${r.st==='go'?'selected':''}>В пути</option>
+          <option value="load" ${r.st==='load'?'selected':''}>Погрузка</option>
+          <option value="wait" ${r.st==='wait'?'selected':''}>Ожидание</option>
+          <option value="done" ${r.st==='done'?'selected':''}>Завершён</option>
+        </select>`:''}
+      </div>
+    </div></div>`;
+  }).join('')||'<div style="padding:20px;text-align:center;color:var(--mu)">Нет рейсов</div>';
+}
+function dFilterRoutes(f){['all','manip','gazel','long'].forEach(v=>{const b=document.getElementById('rt-'+v);if(b)b.className=v===f?'btn-r':'btn-g';});dRenderRoutes(f);}
+function dRenderCat(f){
+  const el=document.getElementById('d-cat-grid');if(!el)return;
+  const list=f==='all'?TECH:TECH.filter(t=>t.g===f);
+  el.innerHTML=list.map(t=>`<div class="card" style="cursor:pointer" onclick="openDOrder('${t.id}')">
+    <div style="height:88px;display:flex;align-items:center;justify-content:center;font-size:38px;background:#fafafa;border-bottom:3px solid var(--r);position:relative">
+      ${t.ico}${t.own?`<span style="position:absolute;top:7px;right:7px;${pill('pg-','✓ Свой').replace('<span','<span style=position:absolute').slice(0,6)}">${pill('pg-','✓ Свой')}</span>`:`<span style="position:absolute;top:7px;right:7px">${pill('pq-','Аренда')}</span>`}
+    </div>
+    <div style="padding:11px 13px">
+      <div style="font-size:13px;font-weight:700">${t.name}</div>
+      <div style="font-size:11px;color:var(--r);font-weight:600;margin-bottom:7px">${t.model}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:7px">${t.specs.map(s=>`<div style="font-size:11px;color:var(--mu)"><b style="color:var(--tx)">${s[1]}</b> ${s[0]}</div>`).join('')}</div>
+      <div style="font-size:11px;color:#888;border-top:1px solid #f0f0f0;padding-top:7px;margin-bottom:9px">${t.desc}</div>
+      <button class="btn-r" style="width:100%;font-size:12px;padding:8px" onclick="event.stopPropagation();openDOrder('${t.id}')">Оформить заявку →</button>
+    </div></div>`).join('');
+}
+function dFilterCat(g){['all','manip','crane','lift','electro','cargo'].forEach(v=>{const b=document.getElementById('ct-'+v);if(b)b.className=v===g?'btn-r':'btn-g';});dRenderCat(g);}
+function dRenderFP(){
+  const el=document.getElementById('d-fp-list');if(!el)return;
+  const isAdmin=CU?.role==='admin';
+  el.innerHTML=FP_DATA.map(obj=>{
+    const c={w:obj.lifts.filter(l=>l.s==='w').length,r:obj.lifts.filter(l=>l.s==='r').length,i:obj.lifts.filter(l=>l.s==='i').length};
+    return `<div class="card" style="margin-bottom:12px">
+      <div class="card-hdr" onclick="dTogFP('${obj.id}')" style="cursor:pointer">
+        <div><h3>🔴 ${obj.name}</h3><div style="font-size:11px;color:var(--mu)">📍 ${obj.addr}</div></div>
+        <div style="display:flex;align-items:center;gap:7px">
+          ${pill('pg-',c.w+' работа')}${c.r?pill('po-',c.r+' обсл.'):''}${c.i?pill('pb-',c.i+' простой'):''}
+          <div style="background:var(--r);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">${obj.total}</div>
+          ${isAdmin?`<button class="ab" onclick="event.stopPropagation();editFPCount('${obj.id}')">✏️ ФП</button>`:''}
+        </div>
+      </div>
+      <div id="dfpb-${obj.id}" style="display:none;padding:14px;border-top:1px solid var(--br)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+          ${obj.lifts.map(l=>`<div style="background:var(--gr);border-radius:8px;padding:9px"><div style="font-size:10px;color:var(--mu)">${l.n}</div><div style="font-size:11px;font-weight:700;margin:1px 0">Фас. подъёмник</div><div style="font-size:10px;color:var(--mu);margin-bottom:4px">${l.m}</div>${pill(LS[l.s].c,LS[l.s].l)}</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function dTogFP(id){const el=document.getElementById('dfpb-'+id);if(el)el.style.display=el.style.display==='none'?'block':'none';}
+function dOpenFP(id){dTogFP(id);toast('📍 '+FP_DATA.find(f=>f.id===id)?.name);}
+function dRenderDrv(f){
+  const tbody=document.getElementById('d-drv-tbody');if(!tbody)return;
+  const isAdmin=CU?.role==='admin';
+  const stL={go:'В рейсе',load:'Погрузка',wait:'Ожидание',done:'Завершил',free:'Свободен'};
+  const stC={go:'po-',load:'pb-',wait:'pq-',done:'pg-',free:'pg-'};
+  const list=f?DRIVERS.filter(d=>d.type===f):DRIVERS;
+  tbody.innerHTML=list.map(d=>`<tr>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:30px;height:30px;border-radius:50%;background:${d.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff">${d.ini}</div><b>${d.name}</b></div></td>
+    <td>${pill(d.type==='own'?'pg-':'po-',d.type==='own'?'Постоянный':'Наёмный')}</td>
+    <td>${d.role}</td>
+    <td><a href="tel:${d.phone}" style="color:var(--bl);font-weight:600">${d.phone}</a></td>
+    <td>${d.company||'—'}</td>
+    <td>${pill(stC[d.st]||'pq-',stL[d.st]||'—')}</td>
+    ${isAdmin?`<td style="display:flex;gap:4px">
+      <button class="ab" onclick="openPhone('${d.id}','${d.name}','${d.phone}','${d.role}','${d.color}','${d.ini}')">📞</button>
+      <button class="ab" onclick="openEditDriver('${d.id}')">✏️</button>
+      <button class="ab ab-r" onclick="deleteDriver('${d.id}')">🗑</button>
+    </td>`:''}
+  </tr>`).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--mu)">Нет водителей</td></tr>';
+}
+function dFilterDrv(f){dRenderDrv(f);}
+function openDOrder(techId){
+  const t=TECH.find(x=>x.id===techId);
+  document.getElementById('d-o-title').textContent=t?'Заявка: '+t.name:'Новая заявка';
+  const tech=document.getElementById('d-o-tech');
+  if(t){tech.innerHTML=`<div class="modal-tech"><div class="mt-ico">${t.ico}</div><div><div class="mt-name">${t.name}</div><div class="mt-model">${t.model}</div><div class="mt-specs">${t.specs.map(s=>`<div class="mt-s"><b>${s[1]}</b> ${s[0]}</div>`).join('')}</div></div></div>`;tech.style.display='block';}
+  else tech.style.display='none';
+  document.getElementById('d-o-form').innerHTML=buildOrderForm(false,techId);
+  if(techId)setTimeout(()=>{const s=document.getElementById('f-tech');if(s)s.value=techId;},50);
+  openModal('dOrderOv');
+}
+
+// ══════════════════════════════════════════
+//  SWIPE
+// ══════════════════════════════════════════
+function addSwipe(sheetId,ovId){
+  let sy=0;const el=document.getElementById(sheetId);if(!el)return;
+  el.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;},{passive:true});
+  el.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-sy>80)closeSheet(ovId);},{passive:true});
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  // Инит Firebase
+  initFirebase();
+  initEmail();
+  // Показываем логин после загрузки
+  setTimeout(()=>{
+    document.getElementById('loader').style.display='none';
+    document.getElementById('loginWrap').style.display='flex';
+  }, fbReady?500:1500);
+  // Swipe
+  addSwipe('orderSheet','orderOv');
+  addSwipe('phoneSheet','phoneOv');
+  // Enter в логине
+  document.getElementById('l-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  document.getElementById('l-login').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('l-pass').focus();});
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    ['orderOv','phoneOv'].forEach(id=>closeSheet(id));
+    ['statusOv','addDrvOv','addObjOv','addUserOv','dOrderOv','onsiteEditOv'].forEach(id=>closeModal(id));
+  }
+});
+window.addEventListener('resize',()=>{
+  if(!CU)return;
+  const wasMobile=document.getElementById('mWrap').style.display!=='none';
+  const isMob=isMobileDevice();
+  if(wasMobile&&!isMob){document.getElementById('mWrap').style.display='none';initDesktop();}
+  else if(!wasMobile&&isMob){document.getElementById('dWrap').style.display='none';initMobile();}
+});
+</script>
+</body>
+</html>
